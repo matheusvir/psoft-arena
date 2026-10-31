@@ -28,6 +28,7 @@ replay_pid*
 Thumbs.db
 
 # Banco H2 (arquivo local)
+data/
 *.mv.db
 *.trace.db
 
