@@ -96,7 +96,8 @@ classDiagram
 
 Restricoes relevantes: `estudante.matricula` unico, `professor.email` unico,
 `turma(codigo, periodo_letivo)` unico, `turma_estudante(turma_id, estudante_id)` unico;
-`turma.professor_id` e `turma_estudante.*` com `ON DELETE RESTRICT`/`CASCADE` conforme a V1.
+`turma.professor_id` e as duas FKs de `turma_estudante` usam `ON DELETE RESTRICT`, o que
+preserva turmas e vinculos enquanto nao houver regra de exclusao definida.
 
 ## Contrato HTTP
 
