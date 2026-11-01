@@ -134,6 +134,24 @@ Sao comandos, nao atualizacao parcial generica: a rota nomeia a transicao e nao 
 corpo. O `409` de encerrar cobre a regra de negocio da turma; `404` cobre id
 inexistente. Sem corpo na resposta.
 
+## Regras de professor e turma (US4)
+
+- Professor aceita `nome` (ate 120 caracteres) e `email` valido (ate 160), ambos
+  obrigatorios e nao em branco. Email duplicado retorna `409`, sem persistir outro professor.
+- Turma aceita `nome` (ate 120), `codigo` (ate 40), `periodoLetivo` (ate 20) e
+  `professorId`, todos obrigatorios; textos nao podem estar em branco.
+- Professor referenciado inexistente retorna `404` na criacao e na edicao, sem persistir
+  a operacao. A resposta de turma inclui `id`, `nome`, `codigo`, `periodoLetivo`,
+  `professorId` e `status`; a de professor inclui `id`, `nome` e `email`.
+- A combinacao `codigo` + `periodoLetivo` e unica; duplicata retorna `409`. O mesmo
+  codigo em outro periodo e permitido, assim como manter os proprios valores na edicao.
+- Turma nasce `ATIVA`. Encerrar novamente uma turma `ENCERRADA` retorna `409`.
+- Turmas encerradas continuam na listagem e na consulta por id. Seus dados cadastrais
+  podem ser editados, preservando o status `ENCERRADA`. Nao ha reativacao nem exclusao.
+- A US5 deve impedir novas associacoes a turmas encerradas. O modulo futuro de atividades
+  deve impedir novas atividades nessas turmas; esses endpoints nao fazem parte da US4.
+- Listagens retornam arrays, inclusive vazios, sem paginacao nem filtro por professor.
+
 ## ProblemDetail
 
 Todo erro usa `application/problem+json` via `ProblemDetail`. Formato base:

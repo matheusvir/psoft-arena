@@ -91,6 +91,13 @@ Tudo sob `/api/v1`, com JSON em portugues conforme a especificacao:
 
 Tabela completa em [docs/api/contrato-http.md](docs/api/contrato-http.md).
 
+## US4 - Professor e turma
+
+A US4 implementa o cadastro minimo de professor (criacao e consultas) e o cadastro,
+consulta, edicao e encerramento de turmas, conforme o contrato HTTP. Professor deve
+existir antes de cadastrar turma. Turmas nascem `ATIVA`; encerrar e uma transicao final,
+com historico preservado. Associacoes de estudantes ficam na US5.
+
 ## Documentacao
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): branches, ordem de merge, revisores e checklist de PR.
