@@ -100,6 +100,7 @@ PR sem os tres itens nao passa na revisao. Contrato fixado no scaffold (rotas `/
 
 - Crie **sempre** uma migration nova (`V2__...sql`, `V3__...sql`); **nunca edite** uma migration ja aplicada (Flyway valida o checksum e o banco de quem ja rodou quebra).
 - O scaffold entrega so a `V1`; branches de US nao criam migration propria na etapa 1.
+  Excecao aprovada uma unica vez: V2 da US2 (ADR-0009).
 - Antes de abrir o PR, faca rebase em `projeto` e confira numeracao/ordem das migrations.
 - Rode o teste de Flyway/migracao junto com a suite: `./gradlew test` (H2 em memoria) e suba a aplicacao uma vez para aplicar no H2 de arquivo.
 - So SQL ANSI (compatibilidade H2/Postgres). Sem JSONB, window function ou extensao.
