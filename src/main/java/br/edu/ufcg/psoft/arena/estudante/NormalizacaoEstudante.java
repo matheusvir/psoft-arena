@@ -12,7 +12,7 @@ final class NormalizacaoEstudante {
     }
 
     static String normalizarEmail(String email) {
-        var emailSemEspacosExternos = removerEspacosExternos(email);
+        String emailSemEspacosExternos = removerEspacosExternos(email);
         return emailSemEspacosExternos == null ? null : emailSemEspacosExternos.toLowerCase(Locale.ROOT);
     }
 }

@@ -18,26 +18,26 @@ public class EstudanteService {
 
     @Transactional
     public EstudanteResponseDTO criarEstudante(EstudanteRequestDTO dados) {
-        var estudante = new Estudante(dados.getNome(), dados.getMatricula(), dados.getEmail());
-        var estudantePersistido = estudanteRepository.saveAndFlush(estudante);
+        Estudante estudante = new Estudante(dados.getNome(), dados.getMatricula(), dados.getEmail());
+        Estudante estudantePersistido = estudanteRepository.saveAndFlush(estudante);
         return converterParaResponseDTO(estudantePersistido);
     }
 
     public List<EstudanteResponseDTO> listarEstudantes() {
-        var estudantes = estudanteRepository.findAll();
+        List<Estudante> estudantes = estudanteRepository.findAll();
         return estudantes.stream().map(this::converterParaResponseDTO).toList();
     }
 
     public EstudanteResponseDTO consultarEstudantePorId(Long id) {
-        var estudante = buscarPorId(id);
+        Estudante estudante = buscarPorId(id);
         return converterParaResponseDTO(estudante);
     }
 
     @Transactional
     public EstudanteResponseDTO editarEstudante(Long id, EstudanteRequestDTO dados) {
-        var estudante = buscarPorId(id);
+        Estudante estudante = buscarPorId(id);
         estudante.atualizarDados(dados.getNome(), dados.getMatricula(), dados.getEmail());
-        var estudantePersistido = estudanteRepository.saveAndFlush(estudante);
+        Estudante estudantePersistido = estudanteRepository.saveAndFlush(estudante);
         return converterParaResponseDTO(estudantePersistido);
     }
 

@@ -1,5 +1,6 @@
 package br.edu.ufcg.psoft.arena.estudante;
 
+import java.net.URI;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,8 +41,8 @@ public class EstudanteController {
     @ApiResponse(responseCode = "409", description = "Matricula ou email ja cadastrado",
             content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     public ResponseEntity<EstudanteResponseDTO> criarEstudante(@Valid @RequestBody EstudanteRequestDTO dados) {
-        var estudante = estudanteService.criarEstudante(dados);
-        var localizacao = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
+        EstudanteResponseDTO estudante = estudanteService.criarEstudante(dados);
+        URI localizacao = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
                 .buildAndExpand(estudante.getId()).toUri();
         return ResponseEntity.created(localizacao).body(estudante);
     }

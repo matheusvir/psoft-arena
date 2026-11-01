@@ -13,7 +13,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -30,9 +32,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:estudante-api;DB_CLOSE_DELAY=-1")
 @AutoConfigureMockMvc
@@ -56,20 +61,20 @@ class EstudanteApiTest {
 
     @Test
     void criaEstudanteNormalizadoERetornaLocalizacaoConsultavel() throws Exception {
-        var resultado = cadastrar("  Maria Silva  ", " Ab123 ", " Maria@EXAMPLE.com ")
+        MvcResult resultado = cadastrar("  Maria Silva  ", " Ab123 ", " Maria@EXAMPLE.com ")
                 .andExpect(status().isCreated()).andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.*", hasSize(4)))
                 .andExpect(jsonPath("$.nome").value("Maria Silva"))
                 .andExpect(jsonPath("$.matricula").value("Ab123"))
                 .andExpect(jsonPath("$.email").value("maria@example.com")).andReturn();
-        var resposta = resultado.getResponse();
-        var estudante = objectMapper.readTree(resposta.getContentAsString());
-        var localizacao = resposta.getHeader("Location");
-        var estudanteJson = estudante.toString();
+        MockHttpServletResponse resposta = resultado.getResponse();
+        JsonNode estudante = objectMapper.readTree(resposta.getContentAsString());
+        String localizacao = resposta.getHeader("Location");
+        String estudanteJson = estudante.toString();
         mockMvc.perform(get(localizacao))
                 .andExpect(status().isOk()).andExpect(content().json(estudanteJson, JsonCompareMode.STRICT));
-        var estudanteId = estudante.get("id").asLong();
-        var persistido = estudanteRepository.findById(estudanteId).orElseThrow();
+        long estudanteId = estudante.get("id").asLong();
+        Estudante persistido = estudanteRepository.findById(estudanteId).orElseThrow();
         assertThat(persistido.getEmail()).isEqualTo("maria@example.com");
     }
 
@@ -80,11 +85,11 @@ class EstudanteApiTest {
 
     @Test
     void listaEstudantesSemDependerDaOrdem() throws Exception {
-        var primeiro = criarEstudante("Ana", "123", "ana@example.com");
-        var segundo = criarEstudante("Bia", "456", "bia@example.com");
-        var resposta = mockMvc.perform(get(ROTA)).andExpect(status().isOk())
+        JsonNode primeiro = criarEstudante("Ana", "123", "ana@example.com");
+        JsonNode segundo = criarEstudante("Bia", "456", "bia@example.com");
+        String resposta = mockMvc.perform(get(ROTA)).andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2))).andReturn().getResponse().getContentAsString();
-        var estudantes = objectMapper.readTree(resposta);
+        JsonNode estudantes = objectMapper.readTree(resposta);
         assertThat(estudantes).containsExactlyInAnyOrder(primeiro, segundo);
     }
 
@@ -98,52 +103,52 @@ class EstudanteApiTest {
 
     @Test
     void documentaCadastroEConsultasNoOpenApi() throws Exception {
-        var documento = consultarOpenApi();
-        var caminhos = documento.path("paths");
-        var cadastro = caminhos.path(ROTA).path("post");
-        var respostasCadastro = codigosDeResposta(cadastro);
-        var corpoObrigatorio = cadastro.path("requestBody").path("required").asBoolean();
-        var listagem = caminhos.path(ROTA).path("get");
-        var consulta = caminhos.path(ROTA + "/{id}").path("get");
-        var respostasListagem = codigosDeResposta(listagem);
-        var respostasConsulta = codigosDeResposta(consulta);
+        JsonNode documento = consultarOpenApi();
+        JsonNode caminhos = documento.path("paths");
+        JsonNode cadastro = caminhos.path(ROTA).path("post");
+        List<String> respostasCadastro = codigosDeResposta(cadastro);
+        boolean corpoObrigatorio = cadastro.path("requestBody").path("required").asBoolean();
+        JsonNode listagem = caminhos.path(ROTA).path("get");
+        JsonNode consulta = caminhos.path(ROTA + "/{id}").path("get");
+        List<String> respostasListagem = codigosDeResposta(listagem);
+        List<String> respostasConsulta = codigosDeResposta(consulta);
         assertThat(respostasCadastro).contains("201", "400", "409");
         assertThat(corpoObrigatorio).isTrue();
         assertThat(respostasListagem).contains("200");
         assertThat(respostasConsulta).contains("200", "404");
-        var entrada = documento.path("components").path("schemas").path("EstudanteRequestDTO");
-        var camposObrigatorios = entrada.path("required").valueStream().map(JsonNode::asText).toList();
+        JsonNode entrada = documento.path("components").path("schemas").path("EstudanteRequestDTO");
+        List<String> camposObrigatorios = entrada.path("required").valueStream().map(JsonNode::asText).toList();
         assertThat(camposObrigatorios).containsExactlyInAnyOrder("nome", "matricula", "email");
-        var campos = entrada.path("properties");
-        var limiteNome = campos.path("nome").path("maxLength").asInt();
-        var limiteMatricula = campos.path("matricula").path("maxLength").asInt();
-        var limiteEmail = campos.path("email").path("maxLength").asInt();
+        JsonNode campos = entrada.path("properties");
+        int limiteNome = campos.path("nome").path("maxLength").asInt();
+        int limiteMatricula = campos.path("matricula").path("maxLength").asInt();
+        int limiteEmail = campos.path("email").path("maxLength").asInt();
         assertThat(limiteNome).isEqualTo(120);
         assertThat(limiteMatricula).isEqualTo(20);
         assertThat(limiteEmail).isEqualTo(160);
-        var saida = documento.path("components").path("schemas").path("EstudanteResponseDTO").path("properties");
-        var camposDeSaida = saida.propertyStream().map(Map.Entry::getKey).toList();
+        JsonNode saida = documento.path("components").path("schemas").path("EstudanteResponseDTO").path("properties");
+        List<String> camposDeSaida = saida.propertyStream().map(Map.Entry::getKey).toList();
         assertThat(camposDeSaida).containsExactlyInAnyOrder("id", "nome", "matricula", "email");
     }
 
     private JsonNode consultarOpenApi() throws Exception {
-        var resultado = mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn();
-        var resposta = resultado.getResponse().getContentAsString();
+        MvcResult resultado = mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn();
+        String resposta = resultado.getResponse().getContentAsString();
         return objectMapper.readTree(resposta);
     }
 
     @Test
     void documentaEdicaoCompletaESeusErrosNoOpenApi() throws Exception {
-        var documento = consultarOpenApi();
-        var edicao = documento.path("paths").path(ROTA + "/{id}").path("put");
-        var respostasEdicao = codigosDeResposta(edicao);
+        JsonNode documento = consultarOpenApi();
+        JsonNode edicao = documento.path("paths").path(ROTA + "/{id}").path("put");
+        List<String> respostasEdicao = codigosDeResposta(edicao);
         assertThat(respostasEdicao).contains("200", "400", "404", "409");
-        var corpo = edicao.path("requestBody");
+        JsonNode corpo = edicao.path("requestBody");
         assertThat(corpo.path("required").asBoolean()).isTrue();
-        var schema = corpo.path("content").path("application/json").path("schema").path("$ref").asText();
+        String schema = corpo.path("content").path("application/json").path("schema").path("$ref").asText();
         assertThat(schema).endsWith("/EstudanteRequestDTO");
-        for (var codigo : new String[] {"400", "404", "409"}) {
-            var resposta = edicao.path("responses").path(codigo).path("content");
+        for (String codigo : new String[] {"400", "404", "409"}) {
+            JsonNode resposta = edicao.path("responses").path(codigo).path("content");
             assertThat(resposta.has("application/problem+json")).isTrue();
         }
     }
@@ -151,18 +156,19 @@ class EstudanteApiTest {
     @ParameterizedTest(name = "{0}: {1}, ausente={2}")
     @MethodSource("camposInvalidos")
     void rejeitaCadastroInvalidoSemInserir(String campo, String valor, boolean ausente) throws Exception {
-        var dados = dadosComCampoInvalido(campo, valor, ausente);
-        var requisicao = post(ROTA).contentType(MediaType.APPLICATION_JSON).content(dados.toString());
-        var resultado = mockMvc.perform(requisicao);
+        ObjectNode dados = dadosComCampoInvalido(campo, valor, ausente);
+        MockHttpServletRequestBuilder requisicao = post(ROTA).contentType(MediaType.APPLICATION_JSON)
+                .content(dados.toString());
+        ResultActions resultado = mockMvc.perform(requisicao);
         verificarErroDeValidacao(resultado, campo);
         assertThat(estudanteRepository.count()).isZero();
     }
 
     static Stream<Arguments> camposInvalidos() {
-        var obrigatorios = Stream.of("nome", "matricula", "email").flatMap(campo -> Stream.of(
+        Stream<Arguments> obrigatorios = Stream.of("nome", "matricula", "email").flatMap(campo -> Stream.of(
                 Arguments.of(campo, null, true), Arguments.of(campo, null, false),
                 Arguments.of(campo, "", false), Arguments.of(campo, "   ", false)));
-        var limitesEFormato = Stream.of(
+        Stream<Arguments> limitesEFormato = Stream.of(
                 Arguments.of("nome", "a".repeat(121), false),
                 Arguments.of("matricula", "a".repeat(21), false),
                 Arguments.of("email", emailComTamanho(161), false),
@@ -173,10 +179,10 @@ class EstudanteApiTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void aceitaLimitesDepoisDeNormalizar(boolean edicao) throws Exception {
-        var nome = "A".repeat(120);
-        var matricula = "Ab".repeat(10);
-        var email = emailComTamanho(160);
-        var estudante = gravarEstudante(edicao, " " + nome + " ", " " + matricula + " ", " " + email + " ");
+        String nome = "A".repeat(120);
+        String matricula = "Ab".repeat(10);
+        String email = emailComTamanho(160);
+        JsonNode estudante = gravarEstudante(edicao, " " + nome + " ", " " + matricula + " ", " " + email + " ");
         assertThat(estudante.get("nome").asText()).isEqualTo(nome);
         assertThat(estudante.get("matricula").asText()).isEqualTo(matricula);
         assertThat(estudante.get("email").asText()).isEqualTo(email);
@@ -185,7 +191,7 @@ class EstudanteApiTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void preservaEspacosInternos(boolean edicao) throws Exception {
-        var estudante = gravarEstudante(edicao, " Maria  Silva ", " Ab 123 ", " MARIA@example.com ");
+        JsonNode estudante = gravarEstudante(edicao, " Maria  Silva ", " Ab 123 ", " MARIA@example.com ");
         assertThat(estudante.get("nome").asText()).isEqualTo("Maria  Silva");
         assertThat(estudante.get("matricula").asText()).isEqualTo("Ab 123");
     }
@@ -193,10 +199,10 @@ class EstudanteApiTest {
     @ParameterizedTest(name = "{0}: {1}, ausente={2}")
     @MethodSource("camposInvalidos")
     void rejeitaEdicaoInvalidaPreservandoDados(String campo, String valor, boolean ausente) throws Exception {
-        var original = criarEstudante("Ana", "123", "ana@example.com");
-        var estudanteId = original.get("id").asLong();
-        var dados = dadosComCampoInvalido(campo, valor, ausente);
-        var resultado = editar(estudanteId, dados);
+        JsonNode original = criarEstudante("Ana", "123", "ana@example.com");
+        long estudanteId = original.get("id").asLong();
+        ObjectNode dados = dadosComCampoInvalido(campo, valor, ausente);
+        ResultActions resultado = editar(estudanteId, dados);
         verificarErroDeValidacao(resultado, campo);
         verificarConsulta(original);
         assertThat(estudanteRepository.count()).isEqualTo(1);
@@ -205,12 +211,12 @@ class EstudanteApiTest {
     @ParameterizedTest
     @ValueSource(strings = {"matricula", "email"})
     void conflitoNaEdicaoReverteTodosOsCampos(String campoConflitante) throws Exception {
-        var original = criarEstudante("Ana", "123", "ana@example.com");
-        var outro = criarEstudante("Bia", "456", "bia@example.com");
-        var estudanteId = original.get("id").asLong();
-        var dados = dadosValidos().put("nome", "Nome alterado").put("matricula", "789")
+        JsonNode original = criarEstudante("Ana", "123", "ana@example.com");
+        JsonNode outro = criarEstudante("Bia", "456", "bia@example.com");
+        long estudanteId = original.get("id").asLong();
+        ObjectNode dados = dadosValidos().put("nome", "Nome alterado").put("matricula", "789")
                 .put("email", "livre@example.com");
-        var valorConflitante = outro.get(campoConflitante).asText();
+        String valorConflitante = outro.get(campoConflitante).asText();
         dados.put(campoConflitante, " " + valorConflitante + " ");
         if (campoConflitante.equals("email")) {
             dados.put("email", " BIA@EXAMPLE.com ");
@@ -232,7 +238,7 @@ class EstudanteApiTest {
     }
 
     private ObjectNode dadosComCampoInvalido(String campo, String valor, boolean ausente) {
-        var dados = dadosValidos();
+        ObjectNode dados = dadosValidos();
         if (ausente) {
             dados.remove(campo);
         } else {
@@ -252,43 +258,43 @@ class EstudanteApiTest {
         if (!edicao) {
             return criarEstudante(nome, matricula, email);
         }
-        var original = criarEstudante("Ana", "123", "ana@example.com");
-        var estudanteId = original.get("id").asLong();
-        var dados = montarDados(nome, matricula, email);
-        var resultado = editar(estudanteId, dados).andExpect(status().isOk()).andReturn();
-        var resposta = resultado.getResponse().getContentAsString();
-        var atualizado = objectMapper.readTree(resposta);
+        JsonNode original = criarEstudante("Ana", "123", "ana@example.com");
+        long estudanteId = original.get("id").asLong();
+        ObjectNode dados = montarDados(nome, matricula, email);
+        MvcResult resultado = editar(estudanteId, dados).andExpect(status().isOk()).andReturn();
+        String resposta = resultado.getResponse().getContentAsString();
+        JsonNode atualizado = objectMapper.readTree(resposta);
         verificarConsulta(atualizado);
         return atualizado;
     }
 
     @Test
     void editaTodosOsCamposPreservandoId() throws Exception {
-        var original = criarEstudante("Ana", "123", "ana@example.com");
-        var estudanteId = original.get("id").asLong();
-        var novosDados = montarDados("  Maria Silva ", " 456 ", " MARIA@EXAMPLE.com ");
-        var resultado = editar(estudanteId, novosDados).andExpect(status().isOk())
+        JsonNode original = criarEstudante("Ana", "123", "ana@example.com");
+        long estudanteId = original.get("id").asLong();
+        ObjectNode novosDados = montarDados("  Maria Silva ", " 456 ", " MARIA@EXAMPLE.com ");
+        MvcResult resultado = editar(estudanteId, novosDados).andExpect(status().isOk())
                 .andExpect(jsonPath("$.*", hasSize(4))).andExpect(jsonPath("$.id").value(estudanteId))
                 .andExpect(jsonPath("$.nome").value("Maria Silva"))
                 .andExpect(jsonPath("$.matricula").value("456"))
                 .andExpect(jsonPath("$.email").value("maria@example.com")).andReturn();
-        var atualizado = objectMapper.readTree(resultado.getResponse().getContentAsString());
+        JsonNode atualizado = objectMapper.readTree(resultado.getResponse().getContentAsString());
         verificarConsulta(atualizado);
         assertThat(estudanteRepository.count()).isEqualTo(1);
     }
 
     @Test
     void permiteManterPropriosIdentificadores() throws Exception {
-        var original = criarEstudante("Ana", "123", "ana@example.com");
-        var estudanteId = original.get("id").asLong();
-        var novosDados = dadosValidos().put("matricula", " 123 ").put("email", " ANA@EXAMPLE.com ");
+        JsonNode original = criarEstudante("Ana", "123", "ana@example.com");
+        long estudanteId = original.get("id").asLong();
+        ObjectNode novosDados = dadosValidos().put("matricula", " 123 ").put("email", " ANA@EXAMPLE.com ");
         editar(estudanteId, novosDados).andExpect(status().isOk());
         verificarConsulta(original);
     }
 
     @Test
     void editarInexistenteNaoCriaEstudante() throws Exception {
-        var dados = dadosValidos();
+        ObjectNode dados = dadosValidos();
         editar(999999L, dados).andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(404));
@@ -296,7 +302,7 @@ class EstudanteApiTest {
     }
 
     private ResultActions editar(long estudanteId, ObjectNode dados) throws Exception {
-        var requisicao = put(ROTA + "/" + estudanteId).contentType(MediaType.APPLICATION_JSON)
+        MockHttpServletRequestBuilder requisicao = put(ROTA + "/" + estudanteId).contentType(MediaType.APPLICATION_JSON)
                 .content(dados.toString());
         return mockMvc.perform(requisicao);
     }
@@ -304,7 +310,7 @@ class EstudanteApiTest {
     @ParameterizedTest
     @MethodSource("identificadoresDuplicados")
     void rejeitaDuplicataSemAlterarOriginal(String matricula, String email) throws Exception {
-        var original = criarEstudante("Ana", "123", "ana@example.com");
+        JsonNode original = criarEstudante("Ana", "123", "ana@example.com");
         cadastrar("Outra", matricula, email).andExpect(status().isConflict())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(409)).andExpect(jsonPath("$.title").isNotEmpty())
@@ -321,20 +327,20 @@ class EstudanteApiTest {
     @ParameterizedTest
     @MethodSource("identificadoresDuplicados")
     void concorrenciaPersisteSomenteUmEstudante(String matricula, String email) throws Exception {
-        var requisicoesProntas = new CountDownLatch(2);
-        var inicioSimultaneo = new CountDownLatch(1);
-        try (var executor = Executors.newFixedThreadPool(2)) {
-            var primeiraResposta = executor.submit(() -> cadastrarConcorrente(
+        CountDownLatch requisicoesProntas = new CountDownLatch(2);
+        CountDownLatch inicioSimultaneo = new CountDownLatch(1);
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            Future<Integer> primeiraResposta = executor.submit(() -> cadastrarConcorrente(
                     "123", "ana@example.com", requisicoesProntas, inicioSimultaneo));
-            var segundaResposta = executor.submit(() -> cadastrarConcorrente(
+            Future<Integer> segundaResposta = executor.submit(() -> cadastrarConcorrente(
                     matricula, email, requisicoesProntas, inicioSimultaneo));
             try {
                 assertThat(requisicoesProntas.await(10, TimeUnit.SECONDS)).isTrue();
             } finally {
                 inicioSimultaneo.countDown();
             }
-            var primeiroStatus = primeiraResposta.get(20, TimeUnit.SECONDS);
-            var segundoStatus = segundaResposta.get(20, TimeUnit.SECONDS);
+            Integer primeiroStatus = primeiraResposta.get(20, TimeUnit.SECONDS);
+            Integer segundoStatus = segundaResposta.get(20, TimeUnit.SECONDS);
             assertThat(new Integer[] {primeiroStatus, segundoStatus}).containsExactlyInAnyOrder(201, 409);
         }
         assertThat(estudanteRepository.count()).isEqualTo(1);
@@ -346,19 +352,19 @@ class EstudanteApiTest {
         if (!inicioSimultaneo.await(10, TimeUnit.SECONDS)) {
             throw new IllegalStateException("Inicio das requisicoes concorrentes nao foi liberado");
         }
-        var resultado = cadastrar("Ana", matricula, email).andReturn();
+        MvcResult resultado = cadastrar("Ana", matricula, email).andReturn();
         return resultado.getResponse().getStatus();
     }
 
     private void verificarConsulta(JsonNode esperado) throws Exception {
-        var estudanteId = esperado.get("id").asLong();
-        var representacaoEsperada = esperado.toString();
+        long estudanteId = esperado.get("id").asLong();
+        String representacaoEsperada = esperado.toString();
         mockMvc.perform(get(ROTA + "/" + estudanteId)).andExpect(status().isOk())
                 .andExpect(content().json(representacaoEsperada, JsonCompareMode.STRICT));
     }
 
     private static String emailComTamanho(int tamanho) {
-        var inicio = "a".repeat(64) + "@" + "b".repeat(63) + ".";
+        String inicio = "a".repeat(64) + "@" + "b".repeat(63) + ".";
         return inicio + "c".repeat(tamanho - inicio.length());
     }
 
@@ -367,14 +373,15 @@ class EstudanteApiTest {
     }
 
     private JsonNode criarEstudante(String nome, String matricula, String email) throws Exception {
-        var resposta = cadastrar(nome, matricula, email).andExpect(status().isCreated())
+        String resposta = cadastrar(nome, matricula, email).andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(resposta);
     }
 
     private ResultActions cadastrar(String nome, String matricula, String email) throws Exception {
-        var dados = montarDados(nome, matricula, email);
-        var requisicao = post(ROTA).contentType(MediaType.APPLICATION_JSON).content(dados.toString());
+        ObjectNode dados = montarDados(nome, matricula, email);
+        MockHttpServletRequestBuilder requisicao = post(ROTA).contentType(MediaType.APPLICATION_JSON)
+                .content(dados.toString());
         return mockMvc.perform(requisicao);
     }
 

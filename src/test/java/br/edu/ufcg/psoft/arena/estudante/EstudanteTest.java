@@ -8,7 +8,7 @@ class EstudanteTest {
 
     @Test
     void normalizaChamadasInternasDeCriacaoEAtualizacao() {
-        var estudante = new Estudante(" Ana  Silva ", " Ab123 ", " ANA@EXAMPLE.com ");
+        Estudante estudante = new Estudante(" Ana  Silva ", " Ab123 ", " ANA@EXAMPLE.com ");
         assertThat(estudante.getNome()).isEqualTo("Ana  Silva");
         assertThat(estudante.getMatricula()).isEqualTo("Ab123");
         assertThat(estudante.getEmail()).isEqualTo("ana@example.com");
@@ -21,7 +21,7 @@ class EstudanteTest {
 
     @Test
     void mantemCamposNulosDisponiveisParaValidacao() {
-        var dados = new EstudanteRequestDTO(null, null, null);
+        EstudanteRequestDTO dados = new EstudanteRequestDTO(null, null, null);
         assertThat(dados.getNome()).isNull();
         assertThat(dados.getMatricula()).isNull();
         assertThat(dados.getEmail()).isNull();
