@@ -104,7 +104,7 @@ preserva turmas e vinculos enquanto nao houver regra de exclusao definida.
 Todos os endpoints ficam sob `/api/v1`, com JSON em portugues. Sucesso de criacao responde
 `201` + `Location`; remocoes respondem `204`; erros usam `ProblemDetail` com `400`
 (validacao), `404` (inexistente) e `409` (regra de negocio, duplicata ou FK). A tabela
-completa esta no `README.md`.
+completa esta em [`../api/contrato-http.md`](../api/contrato-http.md).
 
 ## Pendencias
 
