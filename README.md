@@ -1,89 +1,100 @@
 # PSoft Arena
 
 Plataforma para submissao e avaliacao de solucoes de problemas de projeto de software
-orientado a objetos.
-
-O professor cadastra problemas, estrategias de avaliacao, turmas, atividades e modelos de
-LLM. Os estudantes submetem solucoes em Java e acompanham o processamento e os resultados
-das avaliacoes. A avaliacao e feita automaticamente, sem executar o codigo submetido, por
-meio de analise estatica e de APIs externas de LLM.
+orientado a objetos. O professor cadastra problemas, estrategias de avaliacao, turmas e
+modelos de LLM; os estudantes submetem solucoes em Java e acompanham o processamento e os
+resultados. A avaliacao e automatica e nao executa o codigo submetido: usa analise estatica
+e APIs externas de LLM.
 
 ## Status
 
-Etapa 1 em construcao: base Spring Boot privada com scaffold compartilhado (build, `shared/`,
-migration V1) e as US1-US5 implementadas em branches proprias.
+Etapa 1 em andamento: scaffold Spring Boot (build, `shared/`, migration V1) em `projeto` e
+US1-US5 nas branches proprias. Entrega e decisoes em [docs/etapas/etapa1.md](docs/etapas/etapa1.md).
 
-## Fluxo de branches
+## Modelo de dados (V1)
 
-- `main`: versao entregue de cada etapa.
-- `projeto`: integracao da etapa corrente; recebe o scaffold e os PRs das USs.
-- `us1`..`us5`: uma branch por user story, criada a partir de `projeto`.
+```mermaid
+classDiagram
+    class Professor {
+        Long id
+        String nome
+        String email
+    }
+    class Problema {
+        Long id
+        String titulo
+        String descricao
+        String requisitosFuncionais
+        String requisitosProjeto
+        StatusProblema status
+    }
+    class Estudante {
+        Long id
+        String nome
+        String matricula
+        String email
+    }
+    class EstrategiaAvaliacao {
+        Long id
+        String nome
+        TipoEstrategia tipo
+        String descricao
+        String prompt
+    }
+    class Turma {
+        Long id
+        String nome
+        String codigo
+        String periodoLetivo
+        StatusTurma status
+    }
+    class TurmaEstudante {
+        Long id
+        Instant associadoEm
+    }
 
-Ordem de merge: scaffold -> {US1, US2, US3} em paralelo -> US4 (professor minimo + turma)
--> US5. O fechamento da etapa1 e feito por PR `projeto` -> `main` (sem squash) + tag
-`etapa1`.
+    Professor "1" --> "0..*" Turma : responsavel
+    Turma "1" --> "0..*" TurmaEstudante
+    Estudante "1" --> "0..*" TurmaEstudante
+```
 
-## Revisores
+Uniques: `estudante.matricula`, `professor.email`, `turma(codigo, periodo_letivo)` e
+`turma_estudante(turma_id, estudante_id)`. `turma.professor_id` e as duas FKs de
+`turma_estudante` usam `ON DELETE RESTRICT`.
 
-| US | Responsavel | Revisor |
-|---|---|---|
-| US1 Problemas | Lucaslg7 | @RailtonDantas |
-| US2 Estudantes | RailtonDantas | @matheusvir |
-| US3 Estrategias | jpereira-Dev | @Lucaslg7 |
-| US4 Turmas + professor minimo | ManoelNetto26 | @jpereira-Dev |
-| US5 Associacao estudante-turma | matheusvir | @ManoelNetto26 |
+## Quickstart
 
-## Stack
+JDK 21; o wrapper Gradle ja vem no repositorio.
 
-Java 21, Spring Boot 3.5.6, Gradle (Groovy), Spring Data JPA, Validation, Flyway, H2
-(arquivo no runtime, memoria nos testes), springdoc-openapi 2.8.9.
+```bash
+./gradlew test      # testes com H2 em memoria
+./gradlew bootRun   # aplicacao em http://localhost:8080
+```
 
-## Contrato HTTP (etapa 1)
+Banco H2 em arquivo em `./data/arena`; OpenAPI/Swagger em `/v3/api-docs` e `/swagger-ui.html`.
 
-Todos os recursos ficam sob `/api/v1`, com JSON em portugues conforme a especificacao.
-`201` retorna `Location`, `204` nao tem corpo e erros usam `ProblemDetail`
-(`400` validacao, `404` inexistente, `409` regra de negocio/duplicata/FK).
+## Estrutura
 
-| Recurso | Verbo | Rota | Sucesso | Erros |
-|---|---|---|---|---|
-| Problemas | POST | `/api/v1/problemas` | 201 + Location | 400 |
-| Problemas | GET | `/api/v1/problemas` | 200 | - |
-| Problemas | GET | `/api/v1/problemas/{id}` | 200 | 404 |
-| Problemas | PUT | `/api/v1/problemas/{id}` | 200 | 400, 404 |
-| Problemas | PATCH | `/api/v1/problemas/{id}/desativar` | 204 | 404 |
-| Problemas | DELETE | `/api/v1/problemas/{id}` | 204 | 404, 409 |
-| Estudantes | POST | `/api/v1/estudantes` | 201 + Location | 400, 409 |
-| Estudantes | GET | `/api/v1/estudantes` | 200 | - |
-| Estudantes | GET | `/api/v1/estudantes/{id}` | 200 | 404 |
-| Estudantes | PUT | `/api/v1/estudantes/{id}` | 200 | 400, 404, 409 |
-| Estrategias | POST | `/api/v1/estrategias` | 201 + Location | 400 |
-| Estrategias | GET | `/api/v1/estrategias` | 200 | - |
-| Estrategias | GET | `/api/v1/estrategias/{id}` | 200 | 404 |
-| Estrategias | PUT | `/api/v1/estrategias/{id}` | 200 | 400, 404 |
-| Turmas | POST | `/api/v1/turmas` | 201 + Location | 400, 404, 409 |
-| Turmas | GET | `/api/v1/turmas` | 200 | - |
-| Turmas | GET | `/api/v1/turmas/{id}` | 200 | 404 |
-| Turmas | PUT | `/api/v1/turmas/{id}` | 200 | 400, 404, 409 |
-| Turmas | PATCH | `/api/v1/turmas/{id}/encerrar` | 204 | 404, 409 |
-| TurmaEstudantes | POST | `/api/v1/turmas/{id}/estudantes` | 201 + Location | 400, 404, 409 |
-| TurmaEstudantes | GET | `/api/v1/turmas/{id}/estudantes` | 200 | 404 |
-| TurmaEstudantes | DELETE | `/api/v1/turmas/{id}/estudantes/{estudanteId}` | 204 | 404, 409 |
-| Professores | POST | `/api/v1/professores` | 201 + Location | 400, 409 |
-| Professores | GET | `/api/v1/professores` | 200 | - |
-| Professores | GET | `/api/v1/professores/{id}` | 200 | 404 |
+```text
+br.edu.uepb.psoft.arena
+├── problema/  estudante/  estrategia/  turma/  professor/   # feature: entidade, repository, service, controller, DTO
+└── shared/                                                   # BaseEntity, exceptions, OpenApiConfig, migration V1
+```
 
-`PATCH` de desativar/encerrar e comando explicito: status nao e campo do `PUT`.
+## Contrato HTTP
+
+Tudo sob `/api/v1`, com JSON em portugues conforme a especificacao:
+
+- criacao responde `201` + `Location`; remocao e comando respondem `204` sem corpo;
+- erros usam `ProblemDetail`: `400` validacao, `404` inexistente, `409` regra/duplicata/FK;
+- `PATCH .../desativar` e `PATCH .../encerrar` sao comandos explicitos, nao campos do `PUT`.
+
+Tabela completa em [docs/api/contrato-http.md](docs/api/contrato-http.md).
 
 ## Documentacao
 
-- `docs/etapa1.md`: resumo da etapa, participacao, decisoes e diagrama de classes.
-- OpenAPI/Swagger disponivel em `/v3/api-docs` e `/swagger-ui.html` com a aplicacao no ar.
-
-## Build e testes
-
-```bash
-./gradlew build -x test
-./gradlew test
-```
-
-O banco H2 de arquivo fica em `./data/arena`; os testes usam H2 em memoria.
+- [CONTRIBUTING.md](CONTRIBUTING.md): branches, ordem de merge, revisores e checklist de PR.
+- [docs/api/contrato-http.md](docs/api/contrato-http.md): contrato HTTP da etapa 1.
+- [docs/etapas/etapa1.md](docs/etapas/etapa1.md): entrega, participacao e decisoes da etapa 1.
+- [docs/adr/](docs/adr/): decisoes arquiteturais registradas.
+- [especificacao_psoft_arena.pdf](especificacao_psoft_arena.pdf): especificacao da disciplina.
