@@ -35,18 +35,21 @@ Fluxo de trabalho da etapa 1. Vale para todas as USs (`us1`..`us5`) e para o sca
 
 - `main`: versao entregue de cada etapa. **Sem commit direto.**
 - `projeto`: integracao da etapa corrente. **Sem commit direto**, exceto o scaffold inicial.
-- `us1`..`us5`: uma branch por user story, criada a partir de `projeto` **atualizado**:
+- `feat/us<N>-<slug>`: uma branch por user story, criada a partir de `projeto` **atualizado**.
+  Formato: prefixo `feat/` + `us` + numero da US + slug curto do conteúdo, tudo minusculo com hifen.
+  Exemplos: `feat/us1-cadastro-problemas`, `feat/us3-estrategias-avaliacao`,
+  `feat/us5-associacao-turma`. Correções usam `fix/us<N>-<slug>`; docs, `docs/<slug>`.
 
   ```bash
   git switch projeto && git pull --ff-only
-  git switch -c us3
+  git switch -c feat/us3-estrategias-avaliacao
   ```
 
 O scaffold foi commitado direto em `projeto` antes das branches existirem. Isso e excecao historica autorizada (ver Migration Plan em `design.md`), nao um padrao a repetir.
 
 ## Pull requests
 
-- `us*` -> `projeto`: PR normal, com o **revisor do ciclo** designado.
+- `feat/us*` -> `projeto`: PR normal, com o **revisor do ciclo** designado.
 - `projeto` -> `main`: **so no fechamento da etapa**, junto com a tag `etapa1`.
 - **Sem squash.** Mantenha os commits da branch; o merge commit preserva o historico.
 - **O autor nao mergeia o proprio PR.** Quem aprova e mergeia e o revisor designado.
