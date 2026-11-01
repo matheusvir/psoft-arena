@@ -1,11 +1,11 @@
 # Gradle
 .gradle/
 build/
-!gradle/wrapper/gradle-wrapper.jar
 
 # Java
 *.class
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 !.mvn/wrapper/maven-wrapper.jar
 *.war
 *.ear
@@ -18,6 +18,7 @@ replay_pid*
 *.ipr
 *.iws
 .vscode/
+bin/
 .settings/
 .classpath
 .project
