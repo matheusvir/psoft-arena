@@ -44,6 +44,8 @@ tests preparados pelo dono do scaffold antes da abertura das branches de US.
 - **Requisitos do problema como TEXT livre**: `requisitos_funcionais` e
   `requisitos_projeto` copiados verbatim para o prompt da avaliacao futura.
 - **V1 unica no scaffold**: evita conflito de migrations entre branches de US.
+  Excecao aprovada para US2: V2 normaliza estudantes e adiciona unicidade em email,
+  preservando a V1 (ver ADR-0009).
 - **Rotas planas** (`/api/v1/problemas`, `/api/v1/turmas`): escopo por professor entra na
   etapa 3 junto com autenticacao.
 

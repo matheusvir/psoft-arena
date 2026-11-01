@@ -15,6 +15,7 @@ decisao; o "porque" completo fica no proprio arquivo, nao no historico de PR.
 | [0006](0006-v1-unica-e-migrations.md) | V1 unica no scaffold; migrations depois da etapa | Aceito |
 | [0007](0007-rotas-planas-sem-auth.md) | Rotas planas e sem autenticacao na etapa 1 | Aceito |
 | [0008](0008-professor-minimo-na-us4.md) | Professor minimo dentro da US4 | Aceito |
+| [0009](0009-normalizacao-email-unico-estudante.md) | Normalizacao e e-mail unico de estudante; excecao ao ADR-0006 | Aceito |
 
 ## Template
 

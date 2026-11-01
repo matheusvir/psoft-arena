@@ -72,6 +72,24 @@ tipos, tamanhos e obrigatoriedade.
 `PADROES_DE_PROJETO`. Turma nasce `ATIVA` e problema nasce `ATIVO`; esses valores nao
 sao enviados pelo cliente.
 
+### Estudantes (US2)
+
+- POST e PUT exigem `nome` (ate 120 caracteres), `matricula` (ate 20) e `email`
+  valido (ate 160), nao nulos e nao brancos.
+- Antes de validar ou persistir, aplicar trim nos tres campos e converter email
+  para minusculas. Limites sao medidos apos normalizacao. Espacos internos e caixa
+  de nome/matricula sao preservados; email e retornado normalizado.
+- Matricula e email sao unicos. Email nao distingue maiusculas/minusculas.
+  Duplicata retorna `409`, inclusive em requisicoes concorrentes.
+- Respostas contem apenas `id`, `nome`, `matricula` e `email`.
+- GET lista retorna array sem paginacao e sem ordem garantida; lista vazia retorna `[]`.
+- PUT exige os tres campos completos e preserva o ID. Pode alterar matricula e email
+  para valores disponiveis ou manter os proprios identificadores, inclusive variando
+  caixa/espacos externos do email na entrada. Retorna `200` com dados normalizados;
+  `400`/`409` nao alteram nenhum campo e `404` nao cria um novo estudante.
+- Unicidade de email e normalizacao sao extensoes aprovadas da US2 original.
+  O schema evolui pela V2, sem alterar V1 nem adicionar coluna auxiliar (ADR-0009).
+
 ## Status fora do PUT
 
 `PUT` substitui apenas os atributos editaveis do recurso. `status` nao faz parte do DTO
