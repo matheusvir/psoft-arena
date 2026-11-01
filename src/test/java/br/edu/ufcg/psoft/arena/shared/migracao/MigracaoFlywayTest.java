@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 
 import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.MigrationInfo;
 import org.flywaydb.core.api.MigrationState;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,12 +21,11 @@ class MigracaoFlywayTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    void ultimaMigracaoAplicadaComSucesso() {
-        MigrationInfo atual = flyway.info().current();
-
-        assertThat(atual).isNotNull();
-        assertThat(atual.getVersion().getVersion()).isEqualTo("2");
-        assertThat(atual.getState()).isEqualTo(MigrationState.SUCCESS);
+    void nenhumaMigracaoPendenteOuComFalha() {
+        assertThat(flyway.info().pending()).isEmpty();
+        assertThat(List.of(flyway.info().applied()))
+                .isNotEmpty()
+                .allSatisfy(migracao -> assertThat(migracao.getState()).isEqualTo(MigrationState.SUCCESS));
     }
 
     @Test
