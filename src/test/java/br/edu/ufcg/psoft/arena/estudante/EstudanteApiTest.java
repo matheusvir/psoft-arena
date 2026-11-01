@@ -319,6 +319,16 @@ class EstudanteApiTest {
         verificarConsulta(original);
     }
 
+    @Test
+    void conflitoDizQualIdentificadorColidiu() throws Exception {
+        criarEstudante("Ana", "123", "ana@example.com");
+        cadastrar("Outra", "123", "outra@example.com").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Matricula ja cadastrada."));
+        cadastrar("Outra", "456", "ana@example.com").andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Email ja cadastrado."));
+        assertThat(estudanteRepository.count()).isEqualTo(1);
+    }
+
     static Stream<Arguments> identificadoresDuplicados() {
         return Stream.of(Arguments.of(" 123 ", "outra@example.com"),
                 Arguments.of("456", " Ana@EXAMPLE.com "));
