@@ -32,9 +32,6 @@ Fluxo de trabalho da etapa 1. Vale para todas as USs (`us1`..`us5`) e para o sca
    - `docs/api/contrato-http.md`: rotas, payloads e respostas.
    - `docs/adr/`: decisoes de arquitetura, schema e contratos.
 
-   As referencias antigas a `documentacao de spec` nao estao presentes
-   neste repositorio; use os documentos versionados acima.
-
 ## Branches
 
 - `main`: versao entregue de cada etapa. **Sem commit direto.**
