@@ -21,11 +21,11 @@ class MigracaoFlywayTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    void v1AplicadaComSucesso() {
+    void ultimaMigracaoAplicadaComSucesso() {
         var atual = flyway.info().current();
 
         assertThat(atual).isNotNull();
-        assertThat(atual.getVersion().getVersion()).isEqualTo("1");
+        assertThat(atual.getVersion().getVersion()).isEqualTo("2");
         assertThat(atual.getState()).isEqualTo(MigrationState.SUCCESS);
     }
 
