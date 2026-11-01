@@ -1,4 +1,4 @@
-package br.edu.uepb.psoft.arena;
+package br.edu.ufcg.psoft.arena;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

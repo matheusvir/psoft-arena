@@ -76,7 +76,7 @@ Banco H2 em arquivo em `./data/arena`; OpenAPI/Swagger em `/v3/api-docs` e `/swa
 ## Estrutura
 
 ```text
-br.edu.uepb.psoft.arena
+br.edu.ufcg.psoft.arena
 ├── problema/  estudante/  estrategia/  turma/  professor/   # feature: entidade, repository, service, controller, DTO
 └── shared/                                                   # BaseEntity, exceptions, OpenApiConfig, migration V1
 ```

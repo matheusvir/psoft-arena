@@ -1,4 +1,4 @@
-package br.edu.uepb.psoft.arena.shared.config;
+package br.edu.ufcg.psoft.arena.shared.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

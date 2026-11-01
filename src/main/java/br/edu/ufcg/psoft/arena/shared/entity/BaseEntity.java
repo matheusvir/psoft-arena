@@ -1,4 +1,4 @@
-package br.edu.uepb.psoft.arena.shared.entity;
+package br.edu.ufcg.psoft.arena.shared.entity;
 
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;

@@ -1,4 +1,4 @@
-package br.edu.uepb.psoft.arena.shared.exception;
+package br.edu.ufcg.psoft.arena.shared.exception;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

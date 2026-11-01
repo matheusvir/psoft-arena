@@ -28,8 +28,9 @@ Fluxo de trabalho da etapa 1. Vale para todas as USs (`us1`..`us5`) e para o sca
 4. Leia, nesta ordem:
    - `README.md`: status, contrato HTTP e build.
    - `docs/etapa1.md`: decisoes da etapa.
-   - `openspec/changes/scaffold-base-arena/specs/`: spec da sua US (e do que ela consome).
-   - `openspec/changes/scaffold-base-arena/design.md`: decisoes de schema e contratos fixados.
+   - Issue da sua US e das USs que ela consome: requisitos e responsaveis.
+   - `docs/api/contrato-http.md`: rotas, payloads e respostas.
+   - `docs/adr/`: decisoes de arquitetura, schema e contratos.
 
 ## Branches
 
@@ -44,8 +45,7 @@ Fluxo de trabalho da etapa 1. Vale para todas as USs (`us1`..`us5`) e para o sca
   git switch projeto && git pull --ff-only
   git switch -c feat/us3-estrategias-avaliacao
   ```
-
-O scaffold foi commitado direto em `projeto` antes das branches existirem. Isso e excecao historica autorizada (ver Migration Plan em `design.md`), nao um padrao a repetir.
+O scaffold foi commitado direto em `projeto` antes das branches existirem. Isso e excecao historica autorizada (ver `docs/etapas/etapa1.md`), nao um padrao a repetir.
 
 ## Pull requests
 
@@ -89,7 +89,7 @@ test(estudante): cobre 409 de email duplicado
 
 Alteracao em rota, payload, status ou erro exige, **no mesmo PR**:
 
-1. Spec atualizada em `openspec/changes/scaffold-base-arena/specs/`.
+1. Requisitos da US documentados na issue e no PR.
 2. Doc de contrato atualizado (`docs/api/contrato-http.md`).
 3. Teste MockMvc cobrindo o novo comportamento (sucesso + erros do contrato).
 

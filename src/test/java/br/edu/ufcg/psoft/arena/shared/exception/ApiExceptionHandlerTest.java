@@ -1,4 +1,4 @@
-package br.edu.uepb.psoft.arena.shared.exception;
+package br.edu.ufcg.psoft.arena.shared.exception;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;

@@ -1,4 +1,4 @@
-package br.edu.uepb.psoft.arena.shared.exception;
+package br.edu.ufcg.psoft.arena.shared.exception;
 
 /**
  * Recurso inexistente mapeado para HTTP 404.

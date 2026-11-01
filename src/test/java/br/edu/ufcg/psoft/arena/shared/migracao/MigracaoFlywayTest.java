@@ -1,4 +1,4 @@
-package br.edu.uepb.psoft.arena.shared.migracao;
+package br.edu.ufcg.psoft.arena.shared.migracao;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
