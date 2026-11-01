@@ -77,11 +77,13 @@ public class V2__normalizar_estudantes_email_unico extends BaseJavaMigration {
             throws SQLException {
         var anterior = valores.putIfAbsent(valor, id);
         if (anterior != null) {
-            throw new SQLException("Colisao de " + campo + " apos normalizacao nos estudantes " + anterior + " e " + id);
+            throw new SQLException(
+                    "Colisao de " + campo + " apos normalizacao nos estudantes " + anterior + " e " + id);
         }
     }
 
-    // Contrato historico da V2: independente dos DTOs que evoluirao com a aplicacao.
+    // Contrato historico da V2: independente dos DTOs que evoluirao com a
+    // aplicacao.
     private record EstudanteMigrado(long id,
             @NotBlank @Size(max = 120) String nome,
             @NotBlank @Size(max = 20) String matricula,

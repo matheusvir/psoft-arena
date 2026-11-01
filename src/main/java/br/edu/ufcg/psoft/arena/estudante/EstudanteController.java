@@ -39,8 +39,8 @@ public class EstudanteController {
             content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "409", description = "Matricula ou email ja cadastrado",
             content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
-    public ResponseEntity<EstudanteResponseDTO> criar(@Valid @RequestBody EstudanteRequestDTO dados) {
-        var estudante = estudanteService.criar(dados);
+    public ResponseEntity<EstudanteResponseDTO> criarEstudante(@Valid @RequestBody EstudanteRequestDTO dados) {
+        var estudante = estudanteService.criarEstudante(dados);
         var localizacao = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
                 .buildAndExpand(estudante.getId()).toUri();
         return ResponseEntity.created(localizacao).body(estudante);
@@ -49,8 +49,8 @@ public class EstudanteController {
     @GetMapping
     @Operation(summary = "Listar estudantes", description = "Sem paginacao e sem ordenacao garantida")
     @ApiResponse(responseCode = "200", description = "Lista de estudantes", useReturnTypeSchema = true)
-    public List<EstudanteResponseDTO> listar() {
-        return estudanteService.listar();
+    public List<EstudanteResponseDTO> listarEstudantes() {
+        return estudanteService.listarEstudantes();
     }
 
     @GetMapping("/{id}")
@@ -58,8 +58,8 @@ public class EstudanteController {
     @ApiResponse(responseCode = "200", description = "Estudante encontrado", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "404", description = "Estudante inexistente",
             content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
-    public EstudanteResponseDTO consultar(@PathVariable Long id) {
-        return estudanteService.consultar(id);
+    public EstudanteResponseDTO consultarEstudantePorId(@PathVariable Long id) {
+        return estudanteService.consultarEstudantePorId(id);
     }
 
     @PutMapping("/{id}")
@@ -72,7 +72,7 @@ public class EstudanteController {
             content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     @ApiResponse(responseCode = "409", description = "Matricula ou email pertence a outro estudante",
             content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
-    public EstudanteResponseDTO editar(@PathVariable Long id, @Valid @RequestBody EstudanteRequestDTO dados) {
-        return estudanteService.editar(id, dados);
+    public EstudanteResponseDTO editarEstudante(@PathVariable Long id, @Valid @RequestBody EstudanteRequestDTO dados) {
+        return estudanteService.editarEstudante(id, dados);
     }
 }

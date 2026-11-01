@@ -17,28 +17,28 @@ public class EstudanteService {
     }
 
     @Transactional
-    public EstudanteResponseDTO criar(EstudanteRequestDTO dados) {
+    public EstudanteResponseDTO criarEstudante(EstudanteRequestDTO dados) {
         var estudante = new Estudante(dados.getNome(), dados.getMatricula(), dados.getEmail());
         var estudantePersistido = estudanteRepository.saveAndFlush(estudante);
-        return representar(estudantePersistido);
+        return converterParaResponseDTO(estudantePersistido);
     }
 
-    public List<EstudanteResponseDTO> listar() {
+    public List<EstudanteResponseDTO> listarEstudantes() {
         var estudantes = estudanteRepository.findAll();
-        return estudantes.stream().map(this::representar).toList();
+        return estudantes.stream().map(this::converterParaResponseDTO).toList();
     }
 
-    public EstudanteResponseDTO consultar(Long id) {
+    public EstudanteResponseDTO consultarEstudantePorId(Long id) {
         var estudante = buscarPorId(id);
-        return representar(estudante);
+        return converterParaResponseDTO(estudante);
     }
 
     @Transactional
-    public EstudanteResponseDTO editar(Long id, EstudanteRequestDTO dados) {
+    public EstudanteResponseDTO editarEstudante(Long id, EstudanteRequestDTO dados) {
         var estudante = buscarPorId(id);
         estudante.atualizarDados(dados.getNome(), dados.getMatricula(), dados.getEmail());
         var estudantePersistido = estudanteRepository.saveAndFlush(estudante);
-        return representar(estudantePersistido);
+        return converterParaResponseDTO(estudantePersistido);
     }
 
     private Estudante buscarPorId(Long id) {
@@ -46,7 +46,7 @@ public class EstudanteService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Estudante " + id + " nao encontrado."));
     }
 
-    private EstudanteResponseDTO representar(Estudante estudante) {
+    private EstudanteResponseDTO converterParaResponseDTO(Estudante estudante) {
         return new EstudanteResponseDTO(estudante.getId(), estudante.getNome(), estudante.getMatricula(),
                 estudante.getEmail());
     }
