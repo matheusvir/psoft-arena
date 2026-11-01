@@ -3,6 +3,7 @@ package br.edu.ufcg.psoft.arena.estudante;
 import java.util.List;
 
 import br.edu.ufcg.psoft.arena.shared.exception.RecursoNaoEncontradoException;
+import br.edu.ufcg.psoft.arena.shared.exception.RegraDeNegocioException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ public class EstudanteService {
 
     @Transactional
     public EstudanteResponseDTO criarEstudante(EstudanteRequestDTO dados) {
+        validarIdentificadoresUnicos(null, dados.getMatricula(), dados.getEmail());
         Estudante estudante = new Estudante(dados.getNome(), dados.getMatricula(), dados.getEmail());
         Estudante estudantePersistido = estudanteRepository.saveAndFlush(estudante);
         return converterParaResponseDTO(estudantePersistido);
@@ -36,6 +38,7 @@ public class EstudanteService {
     @Transactional
     public EstudanteResponseDTO editarEstudante(Long id, EstudanteRequestDTO dados) {
         Estudante estudante = buscarPorId(id);
+        validarIdentificadoresUnicos(id, dados.getMatricula(), dados.getEmail());
         estudante.atualizarDados(dados.getNome(), dados.getMatricula(), dados.getEmail());
         Estudante estudantePersistido = estudanteRepository.saveAndFlush(estudante);
         return converterParaResponseDTO(estudantePersistido);
@@ -44,6 +47,19 @@ public class EstudanteService {
     private Estudante buscarPorId(Long id) {
         return estudanteRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Estudante " + id + " nao encontrado."));
+    }
+
+    private void validarIdentificadoresUnicos(Long idIgnorado, String matricula, String email) {
+        estudanteRepository.findByMatricula(matricula)
+                .filter(outro -> !outro.getId().equals(idIgnorado))
+                .ifPresent(outro -> {
+                    throw new RegraDeNegocioException("Matricula ja cadastrada.");
+                });
+        estudanteRepository.findByEmail(email)
+                .filter(outro -> !outro.getId().equals(idIgnorado))
+                .ifPresent(outro -> {
+                    throw new RegraDeNegocioException("Email ja cadastrado.");
+                });
     }
 
     private EstudanteResponseDTO converterParaResponseDTO(Estudante estudante) {
