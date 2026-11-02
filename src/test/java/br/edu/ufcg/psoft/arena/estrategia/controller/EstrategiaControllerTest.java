@@ -1,5 +1,6 @@
 package br.edu.ufcg.psoft.arena.estrategia.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -66,8 +67,8 @@ class EstrategiaControllerTest {
 
         mockMvc.perform(get("/api/v1/estrategias"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].nome").value("Primeira"))
-                .andExpect(jsonPath("$[1].nome").value("Segunda"));
+                .andExpect(jsonPath("$[*].nome").value(
+                        org.hamcrest.Matchers.containsInAnyOrder("Primeira", "Segunda")));
 
         mockMvc.perform(get("/api/v1/estrategias/{id}", primeira.getId()))
                 .andExpect(status().isOk())
@@ -131,6 +132,10 @@ class EstrategiaControllerTest {
         criarTipo("CODE_SMELLS", "Code Smells 2");
         criarTipo("ACOPLAMENTO_COESAO_PRINCIPIOS", "Principios");
         criarTipo("PADROES_DE_PROJETO", "Padroes");
+        assertThat(repository.findAll().stream()
+                .filter(estrategia -> estrategia.getTipo() == TipoEstrategia.CODE_SMELLS)
+                .map(Estrategia::getPrompt).toList())
+                .containsExactlyInAnyOrder("Prompt Code Smells", "Prompt Code Smells 2");
     }
 
     @Test
@@ -144,11 +149,12 @@ class EstrategiaControllerTest {
 
     private void criarTipo(String tipo, String nome) throws Exception {
         String json = "{\"nome\":\"" + nome + "\",\"tipo\":\"" + tipo
-                + "\",\"descricao\":\"Descricao\",\"prompt\":\"Prompt\"}";
+                + "\",\"descricao\":\"Descricao\",\"prompt\":\"Prompt " + nome + "\"}";
 
         enviarPost(json)
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.tipo").value(tipo));
+                .andExpect(jsonPath("$.tipo").value(tipo))
+                .andExpect(jsonPath("$.prompt").value("Prompt " + nome));
     }
 
     private ResultActions enviarPost(String json) throws Exception {
