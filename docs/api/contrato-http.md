@@ -90,6 +90,21 @@ sao enviados pelo cliente.
 - Unicidade de email e normalizacao sao extensoes aprovadas da US2 original.
   O schema evolui pela V2, sem alterar V1 nem adicionar coluna auxiliar (ADR-0009).
 
+### Estrategias (US3)
+
+- POST e PUT exigem `nome` (ate 120 caracteres), `tipo`, `descricao` (ate 2000)
+  e `prompt` (ate 8000), nao nulos; os campos textuais nao podem ser brancos.
+- `tipo` aceita somente os nomes exatos `CODE_SMELLS`,
+  `ACOPLAMENTO_COESAO_PRINCIPIOS` e `PADROES_DE_PROJETO`. Numeros, strings numericas,
+  nomes desconhecidos e variacoes de caixa/espacos retornam `400`.
+- PUT substitui os quatro atributos editaveis, preserva o ID e permite alterar o
+  prompt. Uma requisicao invalida nao altera o registro existente.
+- Varias estrategias podem ter o mesmo tipo, inclusive com prompts diferentes.
+- A listagem nao possui ordem garantida.
+- JSON malformado, corpo obrigatorio ausente e identificador com formato invalido
+  retornam `400` com `application/problem+json`. Erros de Bean Validation incluem
+  o mapa `erros`; erros de leitura/conversao usam o formato base de ProblemDetail.
+
 ## Status fora do PUT
 
 `PUT` substitui apenas os atributos editaveis do recurso. `status` nao faz parte do DTO

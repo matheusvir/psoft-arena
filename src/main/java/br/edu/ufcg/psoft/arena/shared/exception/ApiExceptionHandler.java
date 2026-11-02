@@ -6,10 +6,12 @@ import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * Traduz excecoes conhecidas para {@link ProblemDetail} (RFC 9457).
@@ -19,6 +21,22 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail tratarCorpoInvalido(HttpMessageNotReadableException excecao) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Corpo da requisicao ausente ou com formato ou valores invalidos.");
+        problema.setTitle("Requisicao invalida");
+        return problema;
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail tratarParametroInvalido(MethodArgumentTypeMismatchException excecao) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Parametro '" + excecao.getName() + "' com formato invalido.");
+        problema.setTitle("Requisicao invalida");
+        return problema;
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail tratarValidacao(MethodArgumentNotValidException excecao) {
