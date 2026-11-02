@@ -152,6 +152,29 @@ inexistente. Sem corpo na resposta.
   deve impedir novas atividades nessas turmas; esses endpoints nao fazem parte da US4.
 - Listagens retornam arrays, inclusive vazios, sem paginacao nem filtro por professor.
 
+## Associacao estudante-turma (US5)
+
+| Verbo | Rota | Sucesso | Erros |
+|---|---|---|---|
+| POST | `/api/v1/turmas/{id}/estudantes` | 201 + Location | 400, 404, 409 |
+| GET | `/api/v1/turmas/{id}/estudantes` | 200 | 404 |
+| DELETE | `/api/v1/turmas/{id}/estudantes/{estudanteId}` | 204 | 404, 409 |
+
+- Entrada do POST: apenas `estudanteId`, obrigatorio e nao nulo. Corpo ausente ou
+  `estudanteId` nulo retorna `400`, sem criar vinculo.
+- Respostas do POST e do GET expoem `estudanteId`, `nome`, `matricula` e `associadoEm`.
+  `associadoEm` e gerado pelo servidor na criacao e nunca enviado pelo cliente.
+- POST retorna `201` com o DTO e header `Location` para
+  `/api/v1/turmas/{id}/estudantes/{estudanteId}`. O par turma-estudante e unico:
+  duplicata retorna `409`, inclusive em requisicoes concorrentes.
+- Associacao so e permitida em turma `ATIVA`. Turma `ENCERRADA` retorna `409` no POST
+  e no DELETE, sem criar nem excluir vinculo.
+- `404`: turma inexistente em qualquer um dos tres endpoints, estudante inexistente no
+  POST e par sem vinculo no DELETE.
+- GET retorna array sem paginacao e sem ordem garantida; turma sem vinculos retorna `[]`.
+- DELETE retorna `204` sem corpo. O vinculo removido some das listagens futuras; o
+  estudante e a turma permanecem. Nao ha `PUT` nem consulta por estudante aninhada.
+
 ## ProblemDetail
 
 Todo erro usa `application/problem+json` via `ProblemDetail`. Formato base:
