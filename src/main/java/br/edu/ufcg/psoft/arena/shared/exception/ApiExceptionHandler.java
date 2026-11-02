@@ -9,6 +9,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -52,6 +53,16 @@ public class ApiExceptionHandler {
         return problema;
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail tratarCorpoInvalido(HttpMessageNotReadableException excecao) {
+        return problemaRequisicaoInvalida("O corpo da requisicao esta ausente ou malformado.");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail tratarTipoDeParametroInvalido(MethodArgumentTypeMismatchException excecao) {
+        return problemaRequisicaoInvalida("Um parametro da requisicao possui tipo invalido.");
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail tratarIntegridade(DataIntegrityViolationException excecao) {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(
@@ -73,6 +84,12 @@ public class ApiExceptionHandler {
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(
                 HttpStatus.NOT_FOUND, excecao.getMessage());
         problema.setTitle("Recurso nao encontrado");
+        return problema;
+    }
+
+    private ProblemDetail problemaRequisicaoInvalida(String detalhe) {
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detalhe);
+        problema.setTitle("Requisicao invalida");
         return problema;
     }
 }
