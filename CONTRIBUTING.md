@@ -105,12 +105,21 @@ PR sem os tres itens nao passa na revisao. Contrato fixado no scaffold (rotas `/
 - Rode o teste de Flyway/migracao junto com a suite: `./gradlew test` (H2 em memoria) e suba a aplicacao uma vez para aplicar no H2 de arquivo.
 - So SQL ANSI (compatibilidade H2/Postgres). Sem JSONB, window function ou extensao.
 
+## Planejamento e revisao de qualidade
+
+- Antes de implementar, defina um plano curto com escopo, responsabilidades e evidencias de verificacao; revise o plano para evitar complexidade e acoplamento desnecessarios.
+- Em toda implementacao, revise o diff para identificar e corrigir code smells: duplicacao evitavel, nomes pouco claros, responsabilidades misturadas, metodos extensos e abstracoes sem necessidade concreta.
+- Mantenha testes independentes e diagnosticaveis. Combinacoes de entradas e resultados devem usar testes parametrizados com nomes descritivos, em vez de loops que agrupam varias falhas em um unico caso.
+- Para endpoints REST, confira o OpenAPI gerado contra o contrato e o comportamento real: status de sucesso/erro, headers, tipos de midia, schemas e ausencia de corpo quando aplicavel.
+- Testes verdes nao comprovam ausencia de code smells; registre na descricao do PR o que foi revisado e quaisquer limitacoes conhecidas.
+
 ## Definicao de pronto
 
 Um PR so e mergeavel quando:
 
 - `./gradlew test` verde.
 - Testes de integracao/MockMvc cobrindo sucesso e erros do contrato da US.
+- Plano e diff revisados quanto a code smells; contrato OpenAPI e isolamento dos cenarios verificados quando aplicavel.
 - Contrato/spec/doc atualizados quando aplicavel.
 - Revisor do ciclo aprovou, e o **revisor** fez o merge (sem squash).
 - Sem codigo de debug, `TODO` solto ou arquivo gerado commitado.
