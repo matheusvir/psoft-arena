@@ -47,11 +47,18 @@ schema executavel (campos, tipos, obrigatoriedade) e o OpenAPI gerado em runtime
 
 Leitura da coluna de erros:
 
-- `400`: payload invalido (Bean Validation) ou campo obrigatorio ausente.
-- `404`: recurso do path inexistente; em rotas aninhadas, qualquer um dos ids do path.
+- `400`: payload invalido por Bean Validation ou erro de sintaxe/conversao da requisicao,
+  como JSON malformado, corpo obrigatorio ausente ou parametro de rota cujo tipo nao pode
+  ser convertido. Apenas erros de Bean Validation incluem a propriedade `erros`.
+- `404`: recurso do path inexistente quando o id tem formato valido; em rotas aninhadas,
+  qualquer um dos ids validos do path.
 - `409`: duplicata (email, matricula, `codigo`+`periodoLetivo`, par turma-estudante),
   violacao de regra de negocio (ex.: encerrar turma) ou FK bloqueando a operacao
   (`ON DELETE RESTRICT`).
+
+A coluna lista erros de operacao por endpoint. Erros sintaticos transversais usam `400`
+mesmo em rotas cuja tabela lista apenas `404`; um id malformado nao e tratado como recurso
+inexistente. Esses erros tambem usam `ProblemDetail`, sem expor a excecao de parsing.
 
 ## Campos de entrada (derivados da V1)
 

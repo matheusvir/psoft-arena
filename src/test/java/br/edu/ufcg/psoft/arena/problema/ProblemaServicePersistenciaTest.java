@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import br.edu.ufcg.psoft.arena.problema.dto.ProblemaRequest;
 import br.edu.ufcg.psoft.arena.problema.dto.ProblemaResponse;
 import br.edu.ufcg.psoft.arena.shared.exception.RecursoNaoEncontradoException;
@@ -19,6 +21,9 @@ class ProblemaServicePersistenciaTest {
     @Autowired
     private ProblemaService servico;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     @Test
     void criarPersistirEConsultarTodosOsCampos() {
         String requisitosFuncionais = "  requisito funcional\nsegunda linha\r\n";
@@ -26,6 +31,8 @@ class ProblemaServicePersistenciaTest {
 
         ProblemaResponse criado = servico.criar(
                 request("Título", "Descrição", requisitosFuncionais, requisitosProjeto));
+        entityManager.flush();
+        entityManager.clear();
         ProblemaResponse consultado = servico.buscarPorId(criado.id());
 
         assertThat(consultado.titulo()).isEqualTo("Título");
@@ -38,10 +45,16 @@ class ProblemaServicePersistenciaTest {
     @Test
     void atualizarProblemaInativoPreservaStatus() {
         ProblemaResponse criado = servico.criar(request("Título antigo", "Descrição antiga", "RF antigo", "RP antigo"));
+        entityManager.flush();
+        entityManager.clear();
         servico.desativar(criado.id());
+        entityManager.flush();
+        entityManager.clear();
 
-        ProblemaResponse atualizado = servico.atualizar(
-                criado.id(), request("Título novo", "Descrição nova", "RF novo", "RP novo"));
+        servico.atualizar(criado.id(), request("Título novo", "Descrição nova", "RF novo", "RP novo"));
+        entityManager.flush();
+        entityManager.clear();
+        ProblemaResponse atualizado = servico.buscarPorId(criado.id());
 
         assertThat(atualizado.titulo()).isEqualTo("Título novo");
         assertThat(atualizado.descricao()).isEqualTo("Descrição nova");
@@ -55,6 +68,8 @@ class ProblemaServicePersistenciaTest {
         ProblemaResponse primeiro = servico.criar(request("Mesmo título", "Descrição 1", "RF 1", "RP 1"));
         ProblemaResponse segundo = servico.criar(request("Mesmo título", "Descrição 2", "RF 2", "RP 2"));
         servico.desativar(segundo.id());
+        entityManager.flush();
+        entityManager.clear();
 
         assertThat(servico.listar())
                 .extracting(ProblemaResponse::status)
@@ -69,6 +84,8 @@ class ProblemaServicePersistenciaTest {
         ProblemaResponse criado = servico.criar(request("Título", "Descrição", "RF", "RP"));
 
         servico.excluir(criado.id());
+        entityManager.flush();
+        entityManager.clear();
 
         assertThatThrownBy(() -> servico.buscarPorId(criado.id()))
                 .isInstanceOf(RecursoNaoEncontradoException.class);

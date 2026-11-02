@@ -3,10 +3,14 @@ package br.edu.ufcg.psoft.arena.problema;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import br.edu.ufcg.psoft.arena.problema.dto.ProblemaRequest;
 import jakarta.validation.Validation;
@@ -29,13 +33,10 @@ class ProblemaRequestValidationTest {
         validatorFactory.close();
     }
 
-    @Test
-    void cadaCampoRejeitaValorNuloEmBrancoEAcimaDoLimite() {
-        for (Campo campo : campos()) {
-            assertCampoInvalido(campo.nome(), null);
-            assertCampoInvalido(campo.nome(), " \t\n ");
-            assertCampoInvalido(campo.nome(), "x".repeat(campo.limite() + 1));
-        }
+    @ParameterizedTest(name = "{0} {1}")
+    @MethodSource("casosDeCampoInvalido")
+    void campoRejeitaValorInvalido(String nome, String tipo, String valor) {
+        assertCampoInvalido(nome, valor);
     }
 
     @Test
@@ -77,12 +78,19 @@ class ProblemaRequestValidationTest {
                 .contains(nome);
     }
 
-    private List<Campo> campos() {
+    private static List<Campo> campos() {
         return List.of(
                 new Campo("titulo", 200),
                 new Campo("descricao", 2000),
                 new Campo("requisitosFuncionais", 4000),
                 new Campo("requisitosProjeto", 4000));
+    }
+
+    private static Stream<Arguments> casosDeCampoInvalido() {
+        return campos().stream().flatMap(campo -> Stream.of(
+                Arguments.of(campo.nome(), "nulo", (String) null),
+                Arguments.of(campo.nome(), "em branco", " \t\n "),
+                Arguments.of(campo.nome(), "acima do limite", "x".repeat(campo.limite() + 1))));
     }
 
     private record Campo(String nome, int limite) {
