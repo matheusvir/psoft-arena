@@ -27,7 +27,7 @@ Fluxo de trabalho da etapa 1. Vale para todas as USs (`us1`..`us5`) e para o sca
 
 4. Leia, nesta ordem:
    - `README.md`: status, contrato HTTP e build.
-   - `docs/etapa1.md`: decisoes da etapa.
+   - `docs/etapas/etapa1.md`: decisoes da etapa.
    - Issue da sua US e das USs que ela consome: requisitos e responsaveis.
    - `docs/api/contrato-http.md`: rotas, payloads e respostas.
    - `docs/adr/`: decisoes de arquitetura, schema e contratos.
@@ -90,11 +90,12 @@ test(estudante): cobre 409 de email duplicado
 
 Alteracao em rota, payload, status ou erro exige, **no mesmo PR**:
 
-1. Requisitos da US documentados na issue e no PR.
-2. Doc de contrato atualizado (`docs/api/contrato-http.md`).
+1. Doc de contrato atualizado (`docs/api/contrato-http.md`), com DTOs/controllers refletindo
+   a mudanca no OpenAPI gerado em runtime.
+2. ADR atualizada ou nova, quando houver mudanca de decisao arquitetural.
 3. Teste MockMvc cobrindo o novo comportamento (sucesso + erros do contrato).
 
-PR sem os tres itens nao passa na revisao. Contrato fixado no scaffold (rotas `/api/v1`, JSON em portugues, `201` + `Location`, `204` sem corpo, `ProblemDetail` em `400`/`404`/`409`) so muda com justificativa explicita no PR.
+PR sem os itens aplicaveis nao passa na revisao. Contrato fixado no scaffold (rotas `/api/v1`, JSON em portugues, `201` + `Location`, `204` sem corpo, `ProblemDetail` em `400`/`404`/`409`) so muda com justificativa explicita no PR.
 
 ## Mudanca de schema
 
