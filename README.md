@@ -11,56 +11,71 @@ e APIs externas de LLM.
 Etapa 1 em andamento: scaffold Spring Boot (build, `shared/`, migration V1) em `projeto` e
 US1-US5 nas branches proprias. Entrega e decisoes em [docs/etapas/etapa1.md](docs/etapas/etapa1.md).
 
-## Modelo de dados (V1)
+## Modelagem
+
+Classes de dominio da etapa 1. Sem controller, service ou repository. Detalhe de banco
+em Quickstart / Persistencia (V1).
 
 ```mermaid
 classDiagram
     class Professor {
-        Long id
         String nome
         String email
     }
     class Problema {
-        Long id
         String titulo
         String descricao
         String requisitosFuncionais
         String requisitosProjeto
         StatusProblema status
+        desativar()
     }
     class Estudante {
-        Long id
         String nome
         String matricula
         String email
     }
     class EstrategiaAvaliacao {
-        Long id
         String nome
         TipoEstrategia tipo
         String descricao
         String prompt
     }
     class Turma {
-        Long id
         String nome
         String codigo
         String periodoLetivo
         StatusTurma status
+        encerrar()
+        adicionarEstudante()
+        removerEstudante()
     }
-    class TurmaEstudante {
-        Long id
-        Instant associadoEm
+    class StatusProblema {
+        <<enumeration>>
+        ATIVO
+        INATIVO
+    }
+    class StatusTurma {
+        <<enumeration>>
+        ATIVA
+        ENCERRADA
+    }
+    class TipoEstrategia {
+        <<enumeration>>
+        CODE_SMELLS
+        ACOPLAMENTO_COESAO_PRINCIPIOS
+        PADROES_DE_PROJETO
     }
 
     Professor "1" --> "0..*" Turma : responsavel
-    Turma "1" --> "0..*" TurmaEstudante
-    Estudante "1" --> "0..*" TurmaEstudante
+    Turma "0..*" --> "0..*" Estudante : participa
+    Problema --> StatusProblema
+    Turma --> StatusTurma
+    EstrategiaAvaliacao --> TipoEstrategia
 ```
 
-Uniques: `estudante.matricula`, `professor.email`, `turma(codigo, periodo_letivo)` e
-`turma_estudante(turma_id, estudante_id)`. `turma.professor_id` e as duas FKs de
-`turma_estudante` usam `ON DELETE RESTRICT`.
+Problema nasce `ATIVO` e passa a `INATIVO` so por `desativar()`; turma nasce `ATIVA`
+e passa a `ENCERRADA` so por `encerrar()`; estudante-turma exige turma ativa e sem duplicata.
 
 ## Quickstart
 
@@ -72,6 +87,11 @@ JDK 21; o wrapper Gradle ja vem no repositorio.
 ```
 
 Banco H2 em arquivo em `./data/arena`; OpenAPI/Swagger em `/v3/api-docs` e `/swagger-ui.html`.
+Persistencia (V1, em `src/main/resources/db/migration/V1__esquema_etapa1.sql`): entidades com
+`id` gerado (`BaseEntity`); associacao turma-estudante em tabela `turma_estudante` com
+`associado_em`. Uniques: `estudante.matricula`, `professor.email`,
+`turma(codigo, periodo_letivo)` e `turma_estudante(turma_id, estudante_id)`.
+`turma.professor_id` e as duas FKs de `turma_estudante` usam `ON DELETE RESTRICT`.
 
 ## Estrutura
 
@@ -83,7 +103,7 @@ br.edu.ufcg.psoft.arena
 
 ## Contrato HTTP
 
-Tudo sob `/api/v1`, com JSON em portugues conforme a especificacao:
+Tudo sob `/api/v1`, com JSON em portugues:
 
 - criacao responde `201` + `Location`; remocao e comando respondem `204` sem corpo;
 - erros usam `ProblemDetail`: `400` validacao, `404` inexistente, `409` regra/duplicata/FK;
