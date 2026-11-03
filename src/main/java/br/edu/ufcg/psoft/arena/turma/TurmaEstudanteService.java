@@ -23,6 +23,7 @@ public class TurmaEstudanteService {
     @Transactional
     public TurmaEstudanteResponse adicionar(Long turmaId, Long estudanteId) {
         Turma turma = buscarTurma(turmaId);
+        turma.exigirAtivaParaAssociacao();
         Estudante estudante = buscarEstudante(estudanteId);
         if (repository.existsByTurmaIdAndEstudanteId(turmaId, estudanteId)) {
             throw new RegraDeNegocioException("Estudante ja associado a turma.");
@@ -36,13 +37,21 @@ public class TurmaEstudanteService {
         return repository.findAllByTurmaId(turmaId).stream().map(this::paraResponse).toList();
     }
 
+    public TurmaEstudanteResponse consultar(Long turmaId, Long estudanteId) {
+        buscarTurma(turmaId);
+        return repository.findByTurmaIdAndEstudanteId(turmaId, estudanteId)
+                .map(this::paraResponse)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Vinculo entre turma " + turmaId + " e estudante " + estudanteId + " nao encontrado."));
+    }
+
     @Transactional
     public void remover(Long turmaId, Long estudanteId) {
         Turma turma = buscarTurma(turmaId);
+        turma.exigirAtivaParaRemocao();
         TurmaEstudante vinculo = repository.findByTurmaIdAndEstudanteId(turmaId, estudanteId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Vinculo entre turma " + turmaId + " e estudante " + estudanteId + " nao encontrado."));
-        turma.removerEstudante(vinculo);
         repository.delete(vinculo);
     }
 

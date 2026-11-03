@@ -62,11 +62,15 @@ public class Turma extends BaseEntity {
     }
 
     public TurmaEstudante adicionarEstudante(Estudante estudante) {
-        exigirTurmaAtiva("Nao e possivel adicionar estudantes a uma turma encerrada.");
+        exigirAtivaParaAssociacao();
         return new TurmaEstudante(this, estudante, Instant.now());
     }
 
-    public void removerEstudante(TurmaEstudante vinculo) {
+    public void exigirAtivaParaAssociacao() {
+        exigirTurmaAtiva("Nao e possivel adicionar estudantes a uma turma encerrada.");
+    }
+
+    public void exigirAtivaParaRemocao() {
         exigirTurmaAtiva("Nao e possivel remover estudantes de uma turma encerrada.");
     }
 

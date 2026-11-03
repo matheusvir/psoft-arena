@@ -40,6 +40,7 @@ schema executavel (campos, tipos, obrigatoriedade) e o OpenAPI gerado em runtime
 | Turmas | PATCH | `/api/v1/turmas/{id}/encerrar` | 204 | 404, 409 |
 | TurmaEstudantes | POST | `/api/v1/turmas/{id}/estudantes` | 201 + Location | 400, 404, 409 |
 | TurmaEstudantes | GET | `/api/v1/turmas/{id}/estudantes` | 200 | 404 |
+| TurmaEstudantes | GET | `/api/v1/turmas/{id}/estudantes/{estudanteId}` | 200 | 404 |
 | TurmaEstudantes | DELETE | `/api/v1/turmas/{id}/estudantes/{estudanteId}` | 204 | 404, 409 |
 | Professores | POST | `/api/v1/professores` | 201 + Location | 400, 409 |
 | Professores | GET | `/api/v1/professores` | 200 | - |
@@ -158,22 +159,27 @@ inexistente. Sem corpo na resposta.
 |---|---|---|---|
 | POST | `/api/v1/turmas/{id}/estudantes` | 201 + Location | 400, 404, 409 |
 | GET | `/api/v1/turmas/{id}/estudantes` | 200 | 404 |
+| GET | `/api/v1/turmas/{id}/estudantes/{estudanteId}` | 200 | 404 |
 | DELETE | `/api/v1/turmas/{id}/estudantes/{estudanteId}` | 204 | 404, 409 |
 
 - Entrada do POST: apenas `estudanteId`, obrigatorio e nao nulo. Corpo ausente ou
   `estudanteId` nulo retorna `400`, sem criar vinculo.
-- Respostas do POST e do GET expoem `estudanteId`, `nome`, `matricula` e `associadoEm`.
+- Respostas do POST e dos GETs expoem `estudanteId`, `nome`, `matricula` e `associadoEm`.
   `associadoEm` e gerado pelo servidor na criacao e nunca enviado pelo cliente.
 - POST retorna `201` com o DTO e header `Location` para
-  `/api/v1/turmas/{id}/estudantes/{estudanteId}`. O par turma-estudante e unico:
-  duplicata retorna `409`, inclusive em requisicoes concorrentes.
+  `/api/v1/turmas/{id}/estudantes/{estudanteId}`; essa URI aceita GET e DELETE.
+  O par turma-estudante e unico: duplicata retorna `409`, inclusive em requisicoes concorrentes.
 - Associacao so e permitida em turma `ATIVA`. Turma `ENCERRADA` retorna `409` no POST
-  e no DELETE, sem criar nem excluir vinculo.
-- `404`: turma inexistente em qualquer um dos tres endpoints, estudante inexistente no
-  POST e par sem vinculo no DELETE.
-- GET retorna array sem paginacao e sem ordem garantida; turma sem vinculos retorna `[]`.
+  e no DELETE, sem criar nem excluir vinculo. Quando a turma existe e nao esta `ATIVA`,
+  o `409` de status prevalece sobre o `404` de estudante ou vinculo; a checagem de
+  status ocorre antes das demais validacoes.
+- `404`: turma inexistente em qualquer endpoint, estudante inexistente no POST e par
+  sem vinculo no GET por estudante ou no DELETE.
+- O GET da colecao retorna array sem paginacao e sem ordem garantida; turma sem vinculos
+  retorna `[]`. O GET por estudante retorna o vinculo individual e funciona tambem para
+  turma `ENCERRADA`.
 - DELETE retorna `204` sem corpo. O vinculo removido some das listagens futuras; o
-  estudante e a turma permanecem. Nao ha `PUT` nem consulta por estudante aninhada.
+  estudante e a turma permanecem. Nao ha `PUT`.
 
 ## ProblemDetail
 

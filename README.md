@@ -8,8 +8,8 @@ e APIs externas de LLM.
 
 ## Status
 
-Etapa 1 em andamento: scaffold Spring Boot (build, `shared/`, migration V1) em `projeto` e
-US1-US5 nas branches proprias. Entrega e decisoes em [docs/etapas/etapa1.md](docs/etapas/etapa1.md).
+Etapa 1 em andamento: US1-US5 implementadas; integracao final de `projeto` em `main`
+pendente. Entrega e decisoes em [docs/etapas/etapa1.md](docs/etapas/etapa1.md).
 
 ## Modelo de dados (V1)
 
@@ -34,7 +34,7 @@ classDiagram
         String matricula
         String email
     }
-    class EstrategiaAvaliacao {
+    class Estrategia {
         Long id
         String nome
         TipoEstrategia tipo
@@ -96,7 +96,20 @@ Tabela completa em [docs/api/contrato-http.md](docs/api/contrato-http.md).
 A US4 implementa o cadastro minimo de professor (criacao e consultas) e o cadastro,
 consulta, edicao e encerramento de turmas, conforme o contrato HTTP. Professor deve
 existir antes de cadastrar turma. Turmas nascem `ATIVA`; encerrar e uma transicao final,
-com historico preservado. Associacoes de estudantes ficam na US5.
+com historico preservado. Associacoes de estudantes sao implementadas na US5.
+
+## US5 - Associacao de estudantes
+
+A US5 permite associar, consultar e remover estudantes de uma turma. As rotas ficam em
+`/api/v1/turmas/{id}/estudantes`: `POST` recebe apenas `estudanteId` e responde
+`201 + Location`; `GET` lista os vinculos; `GET /{estudanteId}` consulta um vinculo; e
+`DELETE /{estudanteId}` remove o vinculo com `204`. O `Location` do POST aponta para a
+rota de consulta do vinculo.
+
+Somente turma `ATIVA` aceita nova associacao ou remocao; turma `ENCERRADA` retorna `409`.
+O par turma-estudante e unico, mas o mesmo estudante pode participar de varias turmas.
+A remocao e hard delete do vinculo, preservando estudante e turma. Nao ha migration nova:
+a V1 ja contempla `turma_estudante`.
 
 ## Documentacao
 

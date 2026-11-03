@@ -18,7 +18,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,6 +70,14 @@ class TurmaEstudanteControllerTest {
         assertThat(resultado.getResponse().getContentAsString()).doesNotContain("turma", "email");
         assertThat(jdbc.queryForObject("select count(*) from turma_estudante", Long.class)).isEqualTo(1L);
         assertThat(jdbc.queryForObject("select associado_em from turma_estudante", Object.class)).isNotNull();
+
+        String localizacao = resultado.getResponse().getHeader("Location");
+        assertThat(localizacao).isNotNull();
+        mvc.perform(get(localizacao)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.estudanteId").value(estudanteId))
+                .andExpect(jsonPath("$.nome").value("Maria Silva"))
+                .andExpect(jsonPath("$.matricula").value("123"))
+                .andExpect(jsonPath("$.associadoEm").isNotEmpty());
     }
 
     @Test
@@ -94,6 +101,26 @@ class TurmaEstudanteControllerTest {
     }
 
     @Test
+    void mesmoEstudantePodeParticiparDeTurmasDiferentesESaidaDeUmaNaoAfetaOutra() throws Exception {
+        long primeiraTurma = criarTurma("PSOFT-A", "2026.2");
+        long segundaTurma = criarTurma("PSOFT-B", "2026.2");
+        long estudanteId = criarEstudante("Ana", "111", "ana@example.com");
+
+        adicionar(primeiraTurma, estudanteId).andExpect(status().isCreated());
+        adicionar(segundaTurma, estudanteId).andExpect(status().isCreated());
+
+        mvc.perform(get(rota(primeiraTurma))).andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));
+        mvc.perform(get(rota(segundaTurma))).andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));
+
+        mvc.perform(delete(rota(primeiraTurma) + "/" + estudanteId)).andExpect(status().isNoContent());
+
+        mvc.perform(get(rota(primeiraTurma))).andExpect(status().isOk()).andExpect(content().json("[]"));
+        mvc.perform(get(rota(segundaTurma))).andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].estudanteId").value(estudanteId));
+    }
+
+    @Test
     void removeVinculoERetorna204() throws Exception {
         long turmaId = criarTurma();
         long estudanteId = criarEstudante("Ana", "111", "ana@example.com");
@@ -110,7 +137,6 @@ class TurmaEstudanteControllerTest {
     @Test
     void corpoInvalidoRetorna400SemCriarVinculo() throws Exception {
         long turmaId = criarTurma();
-        long estudanteId = criarEstudante("Ana", "111", "ana@example.com");
 
         mvc.perform(post(rota(turmaId)).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest())
@@ -125,17 +151,18 @@ class TurmaEstudanteControllerTest {
 
         assertThat(jdbc.queryForObject("select count(*) from turma_estudante", Long.class)).isZero();
         mvc.perform(get(rota(turmaId))).andExpect(content().json("[]"));
-        assertThat(estudanteId).isPositive();
     }
 
     @Test
-    void turmaInexistenteRetorna404NosTresEndpoints() throws Exception {
+    void turmaInexistenteRetorna404NosEndpoints() throws Exception {
         long estudanteId = criarEstudante("Ana", "111", "ana@example.com");
         long turmaInexistente = 999999L;
 
         mvc.perform(post(rota(turmaInexistente)).contentType(MediaType.APPLICATION_JSON).content(payload(estudanteId)))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
         mvc.perform(get(rota(turmaInexistente))).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+        mvc.perform(get(rota(turmaInexistente) + "/" + estudanteId)).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
         mvc.perform(delete(rota(turmaInexistente) + "/" + estudanteId)).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
@@ -158,6 +185,52 @@ class TurmaEstudanteControllerTest {
         long estudanteId = criarEstudante("Ana", "111", "ana@example.com");
         mvc.perform(delete(rota(turmaId) + "/" + estudanteId)).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void consultaVinculoInexistenteRetorna404() throws Exception {
+        long turmaId = criarTurma();
+        long estudanteId = criarEstudante("Ana", "111", "ana@example.com");
+        mvc.perform(get(rota(turmaId) + "/" + estudanteId)).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void turmaEncerradaContinuaListandoEConsultandoVinculos() throws Exception {
+        long turmaId = criarTurma();
+        long estudanteId = criarEstudante("Ana", "111", "ana@example.com");
+        adicionar(turmaId, estudanteId).andExpect(status().isCreated());
+        encerrar(turmaId);
+
+        mvc.perform(get(rota(turmaId))).andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].estudanteId").value(estudanteId));
+        mvc.perform(get(rota(turmaId) + "/" + estudanteId)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.estudanteId").value(estudanteId));
+    }
+
+    @Test
+    void turmaEncerradaTemPrecedenciaSobreEstudanteInexistente() throws Exception {
+        long turmaId = criarTurma();
+        encerrar(turmaId);
+
+        mvc.perform(post(rota(turmaId)).contentType(MediaType.APPLICATION_JSON).content(payload(999999L)))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(409));
+        assertThat(jdbc.queryForObject("select count(*) from turma_estudante", Long.class)).isZero();
+    }
+
+    @Test
+    void turmaEncerradaTemPrecedenciaSobreVinculoInexistente() throws Exception {
+        long turmaId = criarTurma();
+        long estudanteId = criarEstudante("Ana", "111", "ana@example.com");
+        encerrar(turmaId);
+
+        mvc.perform(delete(rota(turmaId) + "/" + estudanteId)).andExpect(status().isConflict())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(409));
+        assertThat(jdbc.queryForObject("select count(*) from turma_estudante", Long.class)).isZero();
     }
 
     @Test
@@ -262,8 +335,12 @@ class TurmaEstudanteControllerTest {
     }
 
     private long criarTurma() throws Exception {
-        ObjectNode body = mapper.createObjectNode().put("nome", "Turma A").put("codigo", "PSOFT")
-                .put("periodoLetivo", "2026.2").put("professorId", professorId);
+        return criarTurma("PSOFT", "2026.2");
+    }
+
+    private long criarTurma(String codigo, String periodoLetivo) throws Exception {
+        ObjectNode body = mapper.createObjectNode().put("nome", "Turma " + codigo)
+                .put("codigo", codigo).put("periodoLetivo", periodoLetivo).put("professorId", professorId);
         MvcResult resultado = mvc.perform(post("/api/v1/turmas")
                         .contentType(MediaType.APPLICATION_JSON).content(body.toString()))
                 .andExpect(status().isCreated()).andReturn();
