@@ -1,5 +1,8 @@
 package br.edu.ufcg.psoft.arena.turma;
 
+import java.time.Instant;
+
+import br.edu.ufcg.psoft.arena.estudante.Estudante;
 import br.edu.ufcg.psoft.arena.professor.Professor;
 import br.edu.ufcg.psoft.arena.shared.entity.BaseEntity;
 import br.edu.ufcg.psoft.arena.shared.exception.RegraDeNegocioException;
@@ -56,5 +59,28 @@ public class Turma extends BaseEntity {
             throw new RegraDeNegocioException("Turma ja encerrada.");
         }
         status = StatusTurma.ENCERRADA;
+    }
+
+    public TurmaEstudante adicionarEstudante(Estudante estudante) {
+        exigirAtivaParaAssociacao();
+        return new TurmaEstudante(this, estudante, Instant.now());
+    }
+
+    public void exigirAtivaParaAssociacao() {
+        exigirTurmaAtiva("Nao e possivel adicionar estudantes a uma turma encerrada.");
+    }
+
+    public void exigirAtivaParaRemocao() {
+        exigirTurmaAtiva("Nao e possivel remover estudantes de uma turma encerrada.");
+    }
+
+    public boolean estaAtiva() {
+        return status == StatusTurma.ATIVA;
+    }
+
+    private void exigirTurmaAtiva(String mensagem) {
+        if (!estaAtiva()) {
+            throw new RegraDeNegocioException(mensagem);
+        }
     }
 }
