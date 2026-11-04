@@ -40,6 +40,7 @@ schema executavel (campos, tipos, obrigatoriedade) e o OpenAPI gerado em runtime
 | Turmas | PATCH | `/api/v1/turmas/{id}/encerrar` | 204 | 404, 409 |
 | TurmaEstudantes | POST | `/api/v1/turmas/{id}/estudantes` | 201 + Location | 400, 404, 409 |
 | TurmaEstudantes | GET | `/api/v1/turmas/{id}/estudantes` | 200 | 404 |
+| TurmaEstudantes | GET | `/api/v1/turmas/{id}/estudantes/{estudanteId}` | 200 | 404 |
 | TurmaEstudantes | DELETE | `/api/v1/turmas/{id}/estudantes/{estudanteId}` | 204 | 404, 409 |
 | Professores | POST | `/api/v1/professores` | 201 + Location | 400, 409 |
 | Professores | GET | `/api/v1/professores` | 200 | - |
@@ -47,11 +48,18 @@ schema executavel (campos, tipos, obrigatoriedade) e o OpenAPI gerado em runtime
 
 Leitura da coluna de erros:
 
-- `400`: payload invalido (Bean Validation) ou campo obrigatorio ausente.
-- `404`: recurso do path inexistente; em rotas aninhadas, qualquer um dos ids do path.
+- `400`: payload invalido por Bean Validation ou erro de sintaxe/conversao da requisicao,
+  como JSON malformado, corpo obrigatorio ausente ou parametro de rota cujo tipo nao pode
+  ser convertido. Apenas erros de Bean Validation incluem a propriedade `erros`.
+- `404`: recurso do path inexistente quando o id tem formato valido; em rotas aninhadas,
+  qualquer um dos ids validos do path.
 - `409`: duplicata (email, matricula, `codigo`+`periodoLetivo`, par turma-estudante),
   violacao de regra de negocio (ex.: encerrar turma) ou FK bloqueando a operacao
   (`ON DELETE RESTRICT`).
+
+A coluna lista erros de operacao por endpoint. Erros sintaticos transversais usam `400`
+mesmo em rotas cuja tabela lista apenas `404`; um id malformado nao e tratado como recurso
+inexistente. Esses erros tambem usam `ProblemDetail`, sem expor a excecao de parsing.
 
 ## Campos de entrada (derivados da V1)
 
@@ -71,6 +79,39 @@ tipos, tamanhos e obrigatoriedade.
 `tipo` da estrategia aceita `CODE_SMELLS`, `ACOPLAMENTO_COESAO_PRINCIPIOS` e
 `PADROES_DE_PROJETO`. Turma nasce `ATIVA` e problema nasce `ATIVO`; esses valores nao
 sao enviados pelo cliente.
+
+### Estudantes (US2)
+
+- POST e PUT exigem `nome` (ate 120 caracteres), `matricula` (ate 20) e `email`
+  valido (ate 160), nao nulos e nao brancos.
+- Antes de validar ou persistir, aplicar trim nos tres campos e converter email
+  para minusculas. Limites sao medidos apos normalizacao. Espacos internos e caixa
+  de nome/matricula sao preservados; email e retornado normalizado.
+- Matricula e email sao unicos. Email nao distingue maiusculas/minusculas.
+  Duplicata retorna `409`, inclusive em requisicoes concorrentes.
+- Respostas contem apenas `id`, `nome`, `matricula` e `email`.
+- GET lista retorna array sem paginacao e sem ordem garantida; lista vazia retorna `[]`.
+- PUT exige os tres campos completos e preserva o ID. Pode alterar matricula e email
+  para valores disponiveis ou manter os proprios identificadores, inclusive variando
+  caixa/espacos externos do email na entrada. Retorna `200` com dados normalizados;
+  `400`/`409` nao alteram nenhum campo e `404` nao cria um novo estudante.
+- Unicidade de email e normalizacao sao extensoes aprovadas da US2 original.
+  O schema evolui pela V2, sem alterar V1 nem adicionar coluna auxiliar (ADR-0009).
+
+### Estrategias (US3)
+
+- POST e PUT exigem `nome` (ate 120 caracteres), `tipo`, `descricao` (ate 2000)
+  e `prompt` (ate 8000), nao nulos; os campos textuais nao podem ser brancos.
+- `tipo` aceita somente os nomes exatos `CODE_SMELLS`,
+  `ACOPLAMENTO_COESAO_PRINCIPIOS` e `PADROES_DE_PROJETO`. Numeros, strings numericas,
+  nomes desconhecidos e variacoes de caixa/espacos retornam `400`.
+- PUT substitui os quatro atributos editaveis, preserva o ID e permite alterar o
+  prompt. Uma requisicao invalida nao altera o registro existente.
+- Varias estrategias podem ter o mesmo tipo, inclusive com prompts diferentes.
+- A listagem nao possui ordem garantida.
+- JSON malformado, corpo obrigatorio ausente e identificador com formato invalido
+  retornam `400` com `application/problem+json`. Erros de Bean Validation incluem
+  o mapa `erros`; erros de leitura/conversao usam o formato base de ProblemDetail.
 
 ## Status fora do PUT
 
@@ -93,6 +134,52 @@ por bypass. Na etapa 1 nao existe endpoint de reativacao: `ATIVO -> INATIVO` e
 Sao comandos, nao atualizacao parcial generica: a rota nomeia a transicao e nao aceita
 corpo. O `409` de encerrar cobre a regra de negocio da turma; `404` cobre id
 inexistente. Sem corpo na resposta.
+
+## Regras de professor e turma (US4)
+
+- Professor aceita `nome` (ate 120 caracteres) e `email` valido (ate 160), ambos
+  obrigatorios e nao em branco. Email duplicado retorna `409`, sem persistir outro professor.
+- Turma aceita `nome` (ate 120), `codigo` (ate 40), `periodoLetivo` (ate 20) e
+  `professorId`, todos obrigatorios; textos nao podem estar em branco.
+- Professor referenciado inexistente retorna `404` na criacao e na edicao, sem persistir
+  a operacao. A resposta de turma inclui `id`, `nome`, `codigo`, `periodoLetivo`,
+  `professorId` e `status`; a de professor inclui `id`, `nome` e `email`.
+- A combinacao `codigo` + `periodoLetivo` e unica; duplicata retorna `409`. O mesmo
+  codigo em outro periodo e permitido, assim como manter os proprios valores na edicao.
+- Turma nasce `ATIVA`. Encerrar novamente uma turma `ENCERRADA` retorna `409`.
+- Turmas encerradas continuam na listagem e na consulta por id. Seus dados cadastrais
+  podem ser editados, preservando o status `ENCERRADA`. Nao ha reativacao nem exclusao.
+- A US5 deve impedir novas associacoes a turmas encerradas. O modulo futuro de atividades
+  deve impedir novas atividades nessas turmas; esses endpoints nao fazem parte da US4.
+- Listagens retornam arrays, inclusive vazios, sem paginacao nem filtro por professor.
+
+## Associacao estudante-turma (US5)
+
+| Verbo | Rota | Sucesso | Erros |
+|---|---|---|---|
+| POST | `/api/v1/turmas/{id}/estudantes` | 201 + Location | 400, 404, 409 |
+| GET | `/api/v1/turmas/{id}/estudantes` | 200 | 404 |
+| GET | `/api/v1/turmas/{id}/estudantes/{estudanteId}` | 200 | 404 |
+| DELETE | `/api/v1/turmas/{id}/estudantes/{estudanteId}` | 204 | 404, 409 |
+
+- Entrada do POST: apenas `estudanteId`, obrigatorio e nao nulo. Corpo ausente ou
+  `estudanteId` nulo retorna `400`, sem criar vinculo.
+- Respostas do POST e dos GETs expoem `estudanteId`, `nome`, `matricula` e `associadoEm`.
+  `associadoEm` e gerado pelo servidor na criacao e nunca enviado pelo cliente.
+- POST retorna `201` com o DTO e header `Location` para
+  `/api/v1/turmas/{id}/estudantes/{estudanteId}`; essa URI aceita GET e DELETE.
+  O par turma-estudante e unico: duplicata retorna `409`, inclusive em requisicoes concorrentes.
+- Associacao so e permitida em turma `ATIVA`. Turma `ENCERRADA` retorna `409` no POST
+  e no DELETE, sem criar nem excluir vinculo. Quando a turma existe e nao esta `ATIVA`,
+  o `409` de status prevalece sobre o `404` de estudante ou vinculo; a checagem de
+  status ocorre antes das demais validacoes.
+- `404`: turma inexistente em qualquer endpoint, estudante inexistente no POST e par
+  sem vinculo no GET por estudante ou no DELETE.
+- O GET da colecao retorna array sem paginacao e sem ordem garantida; turma sem vinculos
+  retorna `[]`. O GET por estudante retorna o vinculo individual e funciona tambem para
+  turma `ENCERRADA`.
+- DELETE retorna `204` sem corpo. O vinculo removido some das listagens futuras; o
+  estudante e a turma permanecem. Nao ha `PUT`.
 
 ## ProblemDetail
 

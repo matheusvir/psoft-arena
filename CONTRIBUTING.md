@@ -27,7 +27,7 @@ Fluxo de trabalho da etapa 1. Vale para todas as USs (`us1`..`us5`) e para o sca
 
 4. Leia, nesta ordem:
    - `README.md`: status, contrato HTTP e build.
-   - `docs/etapa1.md`: decisoes da etapa.
+   - `docs/etapas/etapa1.md`: decisoes da etapa.
    - Issue da sua US e das USs que ela consome: requisitos e responsaveis.
    - `docs/api/contrato-http.md`: rotas, payloads e respostas.
    - `docs/adr/`: decisoes de arquitetura, schema e contratos.
@@ -90,19 +90,29 @@ test(estudante): cobre 409 de email duplicado
 
 Alteracao em rota, payload, status ou erro exige, **no mesmo PR**:
 
-1. Requisitos da US documentados na issue e no PR.
-2. Doc de contrato atualizado (`docs/api/contrato-http.md`).
+1. Doc de contrato atualizado (`docs/api/contrato-http.md`), com DTOs/controllers refletindo
+   a mudanca no OpenAPI gerado em runtime.
+2. ADR atualizada ou nova, quando houver mudanca de decisao arquitetural.
 3. Teste MockMvc cobrindo o novo comportamento (sucesso + erros do contrato).
 
-PR sem os tres itens nao passa na revisao. Contrato fixado no scaffold (rotas `/api/v1`, JSON em portugues, `201` + `Location`, `204` sem corpo, `ProblemDetail` em `400`/`404`/`409`) so muda com justificativa explicita no PR.
+PR sem os itens aplicaveis nao passa na revisao. Contrato fixado no scaffold (rotas `/api/v1`, JSON em portugues, `201` + `Location`, `204` sem corpo, `ProblemDetail` em `400`/`404`/`409`) so muda com justificativa explicita no PR.
 
 ## Mudanca de schema
 
 - Crie **sempre** uma migration nova (`V2__...sql`, `V3__...sql`); **nunca edite** uma migration ja aplicada (Flyway valida o checksum e o banco de quem ja rodou quebra).
 - O scaffold entrega so a `V1`; branches de US nao criam migration propria na etapa 1.
+  Excecao aprovada uma unica vez: V2 da US2 (ADR-0009).
 - Antes de abrir o PR, faca rebase em `projeto` e confira numeracao/ordem das migrations.
 - Rode o teste de Flyway/migracao junto com a suite: `./gradlew test` (H2 em memoria) e suba a aplicacao uma vez para aplicar no H2 de arquivo.
 - So SQL ANSI (compatibilidade H2/Postgres). Sem JSONB, window function ou extensao.
+
+## Planejamento e revisao de qualidade
+
+- Antes de implementar, defina um plano curto com escopo, responsabilidades e evidencias de verificacao; revise o plano para evitar complexidade e acoplamento desnecessarios.
+- Em toda implementacao, revise o diff para identificar e corrigir code smells: duplicacao evitavel, nomes pouco claros, responsabilidades misturadas, metodos extensos e abstracoes sem necessidade concreta.
+- Mantenha testes independentes e diagnosticaveis. Combinacoes de entradas e resultados devem usar testes parametrizados com nomes descritivos, em vez de loops que agrupam varias falhas em um unico caso.
+- Para endpoints REST, confira o OpenAPI gerado contra o contrato e o comportamento real: status de sucesso/erro, headers, tipos de midia, schemas e ausencia de corpo quando aplicavel.
+- Testes verdes nao comprovam ausencia de code smells; registre na descricao do PR o que foi revisado e quaisquer limitacoes conhecidas.
 
 ## Definicao de pronto
 
@@ -110,6 +120,7 @@ Um PR so e mergeavel quando:
 
 - `./gradlew test` verde.
 - Testes de integracao/MockMvc cobrindo sucesso e erros do contrato da US.
+- Plano e diff revisados quanto a code smells; contrato OpenAPI e isolamento dos cenarios verificados quando aplicavel.
 - Contrato/spec/doc atualizados quando aplicavel.
 - Revisor do ciclo aprovou, e o **revisor** fez o merge (sem squash).
 - Sem codigo de debug, `TODO` solto ou arquivo gerado commitado.

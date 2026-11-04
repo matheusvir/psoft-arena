@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,6 +42,31 @@ class ApiExceptionHandlerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.title").value("Requisicao invalida"))
                 .andExpect(jsonPath("$.erros.nome").value("nome obrigatorio"));
+    }
+
+    @Test
+    void corpoAusenteRetorna400ComProblemDetailSeguro() throws Exception {
+        mockMvc.perform(post("/teste/validacao")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Requisicao invalida"))
+                .andExpect(jsonPath("$.detail").value("O corpo da requisicao esta ausente ou malformado."))
+                .andExpect(jsonPath("$.instance").value("/teste/validacao"))
+                .andExpect(jsonPath("$.erros").doesNotExist());
+    }
+
+    @Test
+    void parametroDePathComTipoInvalidoRetorna400ComProblemDetailSeguro() throws Exception {
+        mockMvc.perform(get("/teste/id/abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Requisicao invalida"))
+                .andExpect(jsonPath("$.detail").value("Um parametro da requisicao possui tipo invalido."))
+                .andExpect(jsonPath("$.instance").value("/teste/id/abc"))
+                .andExpect(jsonPath("$.erros").doesNotExist());
     }
 
     @Test
@@ -76,6 +102,10 @@ class ApiExceptionHandlerTest {
 
         @PostMapping("/teste/validacao")
         void validar(@Valid @RequestBody RequisicaoDeTeste requisicao) {
+        }
+
+        @GetMapping("/teste/id/{id}")
+        void buscarPorId(@PathVariable Long id) {
         }
 
         @GetMapping("/teste/duplicado")
