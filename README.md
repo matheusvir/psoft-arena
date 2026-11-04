@@ -11,10 +11,11 @@ e APIs externas de LLM.
 Etapa 1 em andamento: US1-US5 implementadas; integracao final de `projeto` em `main`
 pendente. Entrega e decisoes em [docs/etapas/etapa1.md](docs/etapas/etapa1.md).
 
-## Modelagem
+## Modelagem — etapa 1 (corrente)
 
-Classes de dominio da etapa 1. Sem controller, service ou repository. Detalhe de banco
-em Quickstart / Persistencia (V1).
+Classes de dominio da etapa em andamento (US1 a US5). Sem controller, service ou repository.
+Detalhe de banco em Quickstart / Persistencia (V1). Snapshots congelados por etapa em
+[docs/modelagem/](docs/modelagem/).
 
 ```mermaid
 classDiagram
@@ -28,27 +29,36 @@ classDiagram
         String requisitosFuncionais
         String requisitosProjeto
         StatusProblema status
+        atualizarDados()
         desativar()
+        exigirAtivoParaNovaAtividade()
+        validarPodeRemover()
     }
     class Estudante {
         String nome
         String matricula
         String email
+        atualizarDados()
     }
     class Estrategia {
         String nome
         TipoEstrategia tipo
         String descricao
         String prompt
+        atualizar()
     }
     class Turma {
         String nome
         String codigo
         String periodoLetivo
         StatusTurma status
+        atualizar()
         encerrar()
         adicionarEstudante()
-        removerEstudante()
+        estaAtiva()
+    }
+    class TurmaEstudante {
+        Instant associadoEm
     }
     class StatusProblema {
         <<enumeration>>
@@ -68,7 +78,8 @@ classDiagram
     }
 
     Professor "1" --> "0..*" Turma : responsavel
-    Turma "0..*" --> "0..*" Estudante : participa
+    Turma "1" --> "0..*" TurmaEstudante : possui
+    Estudante "1" --> "0..*" TurmaEstudante : participa
     Problema --> StatusProblema
     Turma --> StatusTurma
     Estrategia --> TipoEstrategia
